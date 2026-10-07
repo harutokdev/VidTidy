@@ -1,0 +1,747 @@
+﻿<UserControl x:Class="LocalMediaAI.App.Organize.OrganizeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:l="clr-namespace:LocalMediaAI.App.Localization"
+             xmlns:org="clr-namespace:LocalMediaAI.App.Organize"
+             xmlns:app="clr-namespace:LocalMediaAI.App"
+             Background="#1A2029" Foreground="#E7EDF4" FontSize="14" FontFamily="Yu Gothic UI, Meiryo UI, Segoe UI"
+             AutomationProperties.AutomationId="OrganizeScreen" AutomationProperties.Name="{l:T '整理画面'}">
+    <UserControl.Resources>
+        <!-- Tokens from the approved prototype (v15) -->
+        <SolidColorBrush x:Key="Bg" Color="#12161C"/>
+        <SolidColorBrush x:Key="Surface" Color="#1A2029"/>
+        <SolidColorBrush x:Key="Side" Color="#161B22"/>
+        <SolidColorBrush x:Key="Raised" Color="#222A35"/>
+        <SolidColorBrush x:Key="Hover" Color="#2A3441"/>
+        <SolidColorBrush x:Key="Line" Color="#2E3846"/>
+        <SolidColorBrush x:Key="Line2" Color="#3B4757"/>
+        <SolidColorBrush x:Key="Text" Color="#E7EDF4"/>
+        <SolidColorBrush x:Key="Muted" Color="#9AA6B5"/>
+        <SolidColorBrush x:Key="Faint" Color="#6F7B8B"/>
+        <SolidColorBrush x:Key="Accent" Color="#3C86DA"/>
+        <SolidColorBrush x:Key="AccentHi" Color="#5A9CE6"/>
+        <SolidColorBrush x:Key="Keep" Color="#3FAE7A"/>
+        <SolidColorBrush x:Key="KeepBg" Color="#243A31"/>
+        <SolidColorBrush x:Key="Trash" Color="#B7C3D3"/>
+        <SolidColorBrush x:Key="TrashBg" Color="#2E3540"/>
+        <SolidColorBrush x:Key="Bin" Color="#8E7BD0"/>
+        <SolidColorBrush x:Key="Warn" Color="#E0A042"/>
+        <SolidColorBrush x:Key="WarnText" Color="#E9C58C"/>
+        <SolidColorBrush x:Key="Danger" Color="#E4625B"/>
+        <SolidColorBrush x:Key="Folder" Color="#E2B356"/>
+        <SolidColorBrush x:Key="Trash2" Color="#5B6B80"/>
+        <BooleanToVisibilityConverter x:Key="Visible"/>
+
+        <!-- Buttons -->
+        <Style x:Key="BtnBase" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="{StaticResource AccentHi}"/><Setter TargetName="B" Property="BorderThickness" Value="2"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="B" Property="Opacity" Value="0.45"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Ghost" TargetType="Button" BasedOn="{StaticResource BtnBase}"><Setter Property="Background" Value="Transparent"/></Style>
+        <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource Accent}"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="Foreground" Value="White"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource AccentHi}"/></Trigger></Style.Triggers>
+        </Style>
+        <Style x:Key="Outline" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="Foreground" Value="{StaticResource AccentHi}"/>
+        </Style>
+        <Style x:Key="Small" TargetType="Button" BasedOn="{StaticResource BtnBase}"><Setter Property="Padding" Value="10,4"/><Setter Property="FontSize" Value="12"/></Style>
+        <Style x:Key="DangerBtn" TargetType="Button" BasedOn="{StaticResource BtnBase}"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="#99E4625B"/><Setter Property="Foreground" Value="#F4A19C"/></Style>
+        <Style x:Key="TBtn" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="Padding" Value="10,5"/>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{StaticResource Text}"/></Trigger></Style.Triggers>
+        </Style>
+        <Style x:Key="Kebab" TargetType="Button" BasedOn="{StaticResource TBtn}"><Setter Property="Padding" Value="0"/><Setter Property="Width" Value="26"/><Setter Property="Height" Value="26"/><Setter Property="Content" Value="⋯"/><Setter Property="VerticalAlignment" Value="Top"/></Style>
+        <Style x:Key="SideLink" TargetType="Button" BasedOn="{StaticResource TBtn}"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Stretch"/></Border>
+                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="{StaticResource Hover}"/></Trigger></ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Link" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource AccentHi}"/><Setter Property="FontSize" Value="12"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="T" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="T" Property="TextDecorations" Value="Underline"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="T" Property="TextDecorations" Value="Underline"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="T" Property="Opacity" Value="0.45"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pills and marks -->
+        <Style x:Key="Pill" TargetType="Border"><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,1"/><Setter Property="Margin" Value="6,0,0,0"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="{StaticResource Line2}"/></Style>
+        <Style x:Key="PillKeep" TargetType="Border" BasedOn="{StaticResource Pill}"><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Background" Value="{StaticResource KeepBg}"/></Style>
+        <Style x:Key="PillTrash" TargetType="Border" BasedOn="{StaticResource Pill}"><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Background" Value="{StaticResource TrashBg}"/></Style>
+        <Style x:Key="PillInfo" TargetType="Border" BasedOn="{StaticResource Pill}"><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Background" Value="#20334D"/></Style>
+        <Style x:Key="PillManual" TargetType="Border" BasedOn="{StaticResource Pill}"><Setter Property="BorderBrush" Value="#995A9CE6"/></Style>
+        <Style x:Key="Mark" TargetType="Border"><Setter Property="Width" Value="18"/><Setter Property="Height" Value="18"/><Setter Property="CornerRadius" Value="9"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        <Border x:Key="SameMark" x:Shared="False" Style="{StaticResource Mark}" Background="#3FAE7A"><TextBlock Text="=" FontWeight="Bold" FontSize="12" Foreground="#0C1B13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+
+        <!-- Folder icon -->
+        <Grid x:Key="FolderIcon" x:Shared="False" Width="20" Height="19" VerticalAlignment="Top" Margin="0,2,0,0">
+            <Border Width="9" Height="5" CornerRadius="2,2,0,0" Background="{StaticResource Folder}" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            <Border Height="15" CornerRadius="2" Background="{StaticResource Folder}" VerticalAlignment="Bottom"/>
+        </Grid>
+
+        <!-- Thumbnail with play button (56×32). Click plays in the app. -->
+        <ControlTemplate x:Key="ThumbButton" TargetType="Button">
+            <Border x:Name="Frame" Width="56" Height="32" CornerRadius="4" Background="#2C3A4C" ClipToBounds="True" BorderBrush="Transparent" BorderThickness="1">
+                <Grid org:HoverPreview.FilePath="{Binding Path}">
+                    <Image Stretch="UniformToFill" app:LibraryThumbnailLoader.DecodeWidth="112"
+                           app:LibraryThumbnailLoader.CacheRoot="{Binding DataContext.ThumbnailCacheRoot, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           app:LibraryThumbnailLoader.RelativePath="{Binding ThumbnailRelativePath}"/>
+                    <Border x:Name="Play" Width="18" Height="18" CornerRadius="9" Background="#99000000" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0">
+                        <TextBlock Text="▶" FontSize="8" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                    </Border>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource AccentHi}"/><Setter TargetName="Play" Property="Opacity" Value="1"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource AccentHi}"/><Setter TargetName="Play" Property="Opacity" Value="1"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- One file row: thumbnail, name + role pill, folder, facts on the right. Same everywhere. -->
+        <DataTemplate x:Key="ChoiceRow" DataType="{x:Type org:FileChoice}">
+            <Grid Margin="14,6" DataContext="{Binding File}">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{l:T '再生'}" Click="PlayMenu_OnClick"/>
+                        <MenuItem Header="{l:T 'エクスプローラーで表示'}" Click="RevealMenu_OnClick"/>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Button Template="{StaticResource ThumbButton}" Click="Play_OnClick" HorizontalAlignment="Left" ToolTip="{l:T 'アプリ内で再生'}" AutomationProperties.Name="{l:TBinding FileName, TFormat={}{0} を再生}"/>
+                <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <DockPanel LastChildFill="False">
+                        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="340"/>
+                        <Border x:Name="Role" Style="{StaticResource PillTrash}"><TextBlock x:Name="RoleText" Text="{l:T '片付ける'}" FontSize="11" Foreground="{StaticResource Trash}"/></Border>
+                    </DockPanel>
+                    <TextBlock Text="{Binding Folder}" ToolTip="{Binding Path}" Foreground="{StaticResource Faint}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding FactsText}" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsKeep}" Value="True">
+                    <Setter TargetName="Role" Property="Background" Value="{StaticResource KeepBg}"/>
+                    <Setter TargetName="RoleText" Property="Text" Value="{l:T '残す'}"/>
+                    <Setter TargetName="RoleText" Property="Foreground" Value="{StaticResource Keep}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Choice in the detail pane: name and place only; the facts are in the subtitle or the comparison table. -->
+        <DataTemplate x:Key="ChoicePlaceRow" DataType="{x:Type org:FileChoice}">
+            <Grid Margin="14,6" DataContext="{Binding File}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Button Template="{StaticResource ThumbButton}" Click="Play_OnClick" HorizontalAlignment="Left" ToolTip="{l:T 'アプリ内で再生'}" AutomationProperties.Name="{l:TBinding FileName, TFormat={}{0} を再生}"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <DockPanel LastChildFill="False">
+                        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" ToolTip="{Binding FileName}"/>
+                        <Border x:Name="Role" Style="{StaticResource PillTrash}"><TextBlock x:Name="RoleText" Text="{l:T '片付ける'}" FontSize="11" Foreground="{StaticResource Trash}"/></Border>
+                    </DockPanel>
+                    <TextBlock Text="{Binding Folder}" ToolTip="{Binding Path}" Foreground="{StaticResource Faint}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsKeep}" Value="True">
+                    <Setter TargetName="Role" Property="Background" Value="{StaticResource KeepBg}"/>
+                    <Setter TargetName="RoleText" Property="Text" Value="{l:T '残す'}"/>
+                    <Setter TargetName="RoleText" Property="Foreground" Value="{StaticResource Keep}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 「残す 整理済み」「片付ける ダウンロード」 on a one-line group row -->
+        <DataTemplate x:Key="LocationChipTemplate" DataType="{x:Type org:LocationChip}">
+            <Border x:Name="Chip" CornerRadius="10" Padding="2,1,8,1" Margin="0,3,6,0" Background="{StaticResource TrashBg}">
+                <StackPanel Orientation="Horizontal">
+                    <Border CornerRadius="8" Padding="6,0" Background="#14FFFFFF" Margin="0,0,5,0"><TextBlock Text="{Binding Role}" FontSize="10" x:Name="RoleText" Foreground="{StaticResource Trash}"/></Border>
+                    <TextBlock Text="{Binding Text}" FontSize="11" x:Name="PlaceText" Foreground="{StaticResource Trash}"/>
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsKeep}" Value="True">
+                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource KeepBg}"/>
+                    <Setter TargetName="RoleText" Property="Foreground" Value="{StaticResource Keep}"/>
+                    <Setter TargetName="PlaceText" Property="Foreground" Value="{StaticResource Keep}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Plain file line used in dialogs (no role pill). -->
+        <DataTemplate x:Key="FileLine" DataType="{x:Type org:OrganizeFile}">
+            <Grid Margin="0,4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Button Template="{StaticResource ThumbButton}" Click="Play_OnClick" HorizontalAlignment="Left" ToolTip="{l:T 'アプリ内で再生'}" AutomationProperties.Name="{l:TBinding FileName, TFormat={}{0} を再生}"/>
+                <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    <TextBlock Text="{Binding Folder}" ToolTip="{Binding Path}" Foreground="{StaticResource Faint}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding FactsText}" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="GroupCard" DataType="{x:Type org:GroupRow}">
+            <Border x:Name="Card" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Background="Transparent" Cursor="Hand"
+                    MouseLeftButtonUp="Group_OnClick" Focusable="True" KeyDown="Group_OnKeyDown" FocusVisualStyle="{x:Null}"
+                    AutomationProperties.Name="{l:TBinding Keep.FileName, TFormat={}{0} の組}">
+                <Grid>
+                    <Border x:Name="SelBar" Width="3" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Collapsed"/>
+                    <StackPanel Margin="0,0,0,4">
+                        <DockPanel Margin="14,8,14,2" LastChildFill="False">
+                            <Border x:Name="MarkBox" Style="{StaticResource Mark}" Background="#3FAE7A" Margin="0,0,8,0"><TextBlock x:Name="MarkText" Text="=" FontWeight="Bold" FontSize="12" Foreground="#0C1B13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                            <TextBlock Text="{Binding HeadText}" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Border Style="{StaticResource PillManual}" Visibility="{Binding IsManual, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '手動で選択'}" FontSize="11" Foreground="{StaticResource AccentHi}"/></Border>
+                                <Border x:Name="Waiting" Style="{StaticResource Pill}" Visibility="Collapsed"><TextBlock Text="{l:T '接続すると片付けられます'}" FontSize="11" Foreground="{StaticResource Muted}"/></Border>
+                                <Border x:Name="Clear" Style="{StaticResource PillInfo}" Visibility="Collapsed" ToolTip="{l:T '長さも中身もほぼ同じで、残す方の画質が同じか上です。まとめて承認できます'}"><TextBlock Text="{l:T 'はっきり'}" FontSize="11" Foreground="{StaticResource AccentHi}"/></Border>
+                                <Border x:Name="Queued" Style="{StaticResource PillTrash}" Visibility="Collapsed"><TextBlock Text="{l:T '整理リストに追加済み'}" FontSize="11" Foreground="{StaticResource Trash}"/></Border>
+                            </StackPanel>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Focusable="False"/>
+                        <Border x:Name="GoalLine" Visibility="Collapsed" Margin="14,2,14,6" BorderBrush="{StaticResource Keep}" BorderThickness="0,2,0,0" Padding="0,4,0,0">
+                            <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource Keep}"
+                                       Text="{l:TBinding DataContext.Goal.Label, RelativeSource={RelativeSource AncestorType=UserControl}, TFormat=✓ ここまで片付けると、目標（{0}）に届きます}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Queued"><Setter TargetName="Queued" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsClear}" Value="True"><Setter TargetName="Clear" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsGoalLine}" Value="True"><Setter TargetName="GoalLine" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsReady}" Value="False"><Setter TargetName="Waiting" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding Category}" Value="Similar"><Setter TargetName="MarkBox" Property="Background" Value="#E6C547"/><Setter TargetName="MarkText" Property="Text" Value="≈"/><Setter TargetName="MarkText" Property="Foreground" Value="#15130A"/></DataTrigger>
+                <DataTrigger Binding="{Binding Category}" Value="NeedsCheck"><Setter TargetName="MarkBox" Property="Background" Value="#E4625B"/><Setter TargetName="MarkText" Property="Text" Value="!"/><Setter TargetName="MarkText" Property="Foreground" Value="#1D0B0A"/></DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#1E2530"/></Trigger>
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <MultiBinding Converter="{x:Static org:SameReferenceConverter.Instance}">
+                            <Binding/>
+                            <Binding Path="DataContext.Selected" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                        </MultiBinding>
+                    </DataTrigger.Binding>
+                    <Setter TargetName="Card" Property="Background" Value="#1F2A38"/>
+                    <Setter TargetName="SelBar" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- One line per group: the kept file's name once, then where each copy is. Used for identical groups and the cleanup list. -->
+        <DataTemplate x:Key="CompactCard" DataType="{x:Type org:GroupRow}">
+            <Border x:Name="Card" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Background="Transparent" Cursor="Hand"
+                    MouseLeftButtonUp="Group_OnClick" Focusable="True" KeyDown="Group_OnKeyDown" FocusVisualStyle="{x:Null}" ToolTip="{Binding PathsText}"
+                    AutomationProperties.Name="{l:TBinding Keep.FileName, TFormat={}{0} の組}">
+                <Grid>
+                    <Border x:Name="SelBar" Width="3" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Collapsed"/>
+                    <StackPanel>
+                        <Grid Margin="14,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="66"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Button Template="{StaticResource ThumbButton}" DataContext="{Binding Keep}" Click="Play_OnClick" HorizontalAlignment="Left" VerticalAlignment="Top" ToolTip="{l:T 'アプリ内で再生'}"
+                                    AutomationProperties.Name="{l:TBinding FileName, TFormat={}{0} を再生}"/>
+                            <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                <DockPanel LastChildFill="False">
+                                    <Border x:Name="MarkBox" Style="{StaticResource Mark}" Background="#3FAE7A" Margin="0,0,6,0" Visibility="Collapsed"><TextBlock x:Name="MarkText" Text="=" FontWeight="Bold" FontSize="12" Foreground="#0C1B13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                    <TextBlock Text="{Binding Keep.FileName}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="300" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CountText}" Foreground="{StaticResource Muted}" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    <Border Style="{StaticResource PillManual}" Visibility="{Binding IsManual, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '手動で選択'}" FontSize="11" Foreground="{StaticResource AccentHi}"/></Border>
+                                    <Border Style="{StaticResource PillKeep}" Visibility="{Binding IsBulkApproved, Converter={StaticResource Visible}}"><TextBlock Text="{l:T 'まとめて承認'}" FontSize="11" Foreground="{StaticResource Keep}"/></Border>
+                                    <Border x:Name="Waiting" Style="{StaticResource Pill}" Visibility="Collapsed"><TextBlock Text="{l:T '接続すると片付けられます'}" FontSize="11" Foreground="{StaticResource Muted}"/></Border>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Locations}" ItemTemplate="{StaticResource LocationChipTemplate}" Focusable="False">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ListSizeText}" HorizontalAlignment="Right" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding KeepFactsText}" HorizontalAlignment="Right" FontSize="12" Foreground="{StaticResource Muted}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Border x:Name="GoalLine" Visibility="Collapsed" Margin="14,2,14,6" BorderBrush="{StaticResource Keep}" BorderThickness="0,2,0,0" Padding="0,4,0,0">
+                            <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource Keep}"
+                                       Text="{l:TBinding DataContext.Goal.Label, RelativeSource={RelativeSource AncestorType=UserControl}, TFormat=✓ ここまで片付けると、目標（{0}）に届きます}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Queued"><Setter TargetName="MarkBox" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsReady}" Value="False"><Setter TargetName="Waiting" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsGoalLine}" Value="True"><Setter TargetName="GoalLine" Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding Category}" Value="Similar"><Setter TargetName="MarkBox" Property="Background" Value="#E6C547"/><Setter TargetName="MarkText" Property="Text" Value="≈"/><Setter TargetName="MarkText" Property="Foreground" Value="#15130A"/></DataTrigger>
+                <DataTrigger Binding="{Binding Category}" Value="NeedsCheck"><Setter TargetName="MarkBox" Property="Background" Value="#E4625B"/><Setter TargetName="MarkText" Property="Text" Value="!"/><Setter TargetName="MarkText" Property="Foreground" Value="#1D0B0A"/></DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#1E2530"/></Trigger>
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <MultiBinding Converter="{x:Static org:SameReferenceConverter.Instance}">
+                            <Binding/>
+                            <Binding Path="DataContext.Selected" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                        </MultiBinding>
+                    </DataTrigger.Binding>
+                    <Setter TargetName="Card" Property="Background" Value="#1F2A38"/>
+                    <Setter TargetName="SelBar" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Section header: caret, mark, name, count, pill -->
+        <Style x:Key="SectionHead" TargetType="Border">
+            <Setter Property="Background" Value="#171D25"/><Setter Property="BorderBrush" Value="{StaticResource Line}"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="8,8,14,8"/>
+        </Style>
+        <Style x:Key="Caret" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="Width" Value="26"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="B" Background="Transparent" CornerRadius="4"><TextBlock x:Name="T" Text="▸" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="T" Property="Text" Value="▾"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="B" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="FolderItem" DataType="{x:Type org:FolderRow}">
+            <Border x:Name="Item" Padding="8,7,4,7" CornerRadius="6" Background="Transparent" Cursor="SizeNS" AllowDrop="True"
+                    PreviewMouseLeftButtonDown="Folder_OnMouseDown" MouseMove="Folder_OnMouseMove"
+                    ToolTip="{l:T 'つかんで上下に動かすと優先順位を変えられます'}">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <ContentControl Content="{StaticResource FolderIcon}" Focusable="False" Margin="0,3,0,0"/>
+                    <StackPanel Grid.Column="1">
+                        <DockPanel LastChildFill="False">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="120"/>
+                            <Border Style="{StaticResource Pill}" BorderBrush="#80E2B356" Padding="6,0"><TextBlock Text="{l:TBinding Rank, TFormat=優先{0}}" FontSize="10" Foreground="{StaticResource Folder}"/></Border>
+                        </DockPanel>
+                        <TextBlock Text="{Binding Path}" Foreground="{StaticResource Faint}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                        <TextBlock x:Name="State" Text="{Binding StatusText}" Foreground="{StaticResource Muted}" FontSize="11"/>
+                        <TextBlock x:Name="Scanning" Text="{Binding AnalysisText}" Foreground="{StaticResource AccentHi}" FontSize="11" Visibility="Collapsed" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                        <Border x:Name="ScanBar" Height="3" CornerRadius="2" Background="{StaticResource Line}" Margin="0,3,0,0" ClipToBounds="True" Visibility="Collapsed">
+                            <ProgressBar Value="{Binding AnalysisPercent, Mode=OneWay}" Maximum="100" Height="3" Background="Transparent" BorderThickness="0" Foreground="{StaticResource Accent}"/>
+                        </Border>
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource Kebab}" Click="FolderMenu_OnClick" AutomationProperties.Name="{l:TBinding Name, TFormat={}{0}の操作}">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{l:T '優先順位を上げる'}" Click="FolderUp_OnClick" Tag="{Binding}"/>
+                                <MenuItem Header="{l:T '優先順位を下げる'}" Click="FolderDown_OnClick" Tag="{Binding}"/>
+                                <Separator/>
+                                <MenuItem Header="{l:T 'エクスプローラーで開く'}" Click="FolderOpen_OnClick" Tag="{Binding}"/>
+                                <MenuItem Header="{l:T '中のファイルを一覧で見る'}" Click="FolderFiles_OnClick" Tag="{Binding}"/>
+                                <MenuItem Header="{l:T 'もう一度解析する'}" Click="FolderRescan_OnClick" Tag="{Binding}"/>
+                                <Separator/>
+                                <MenuItem Click="FolderRemove_OnClick" Tag="{Binding}" Foreground="#F08A84">
+                                    <MenuItem.Header>
+                                        <StackPanel><TextBlock Text="{l:T '整理対象から外す'}"/><TextBlock Text="{l:T '元のファイルは削除されません'}" FontSize="11" Foreground="#6F7B8B"/></StackPanel>
+                                    </MenuItem.Header>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsOnline}" Value="False"><Setter TargetName="State" Property="Foreground" Value="{StaticResource Danger}"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                    <Setter TargetName="State" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="Scanning" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="ScanBar" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Item" Property="Background" Value="#0DFFFFFF"/></Trigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="DriveItem" DataType="{x:Type org:DriveSpace}">
+            <StackPanel Margin="4,0,4,12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding FreeText}" Foreground="{StaticResource Muted}" FontSize="12"/>
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="12"/>
+                </DockPanel>
+                <Border CornerRadius="4" Height="7" Background="{StaticResource Line}" Margin="0,4,0,0" ClipToBounds="True">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding UsedStar}"/><ColumnDefinition Width="{Binding BinStar}"/><ColumnDefinition Width="{Binding QueueStar}"/><ColumnDefinition Width="{Binding FreeStar}"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="{StaticResource Trash2}"/>
+                        <Border Grid.Column="1" Background="{StaticResource Bin}"/>
+                        <Border Grid.Column="2" Background="{StaticResource Keep}"/>
+                    </Grid>
+                </Border>
+                <!-- Stacked and wrapping, so longer translations stay readable in the narrow side panel. -->
+                <StackPanel x:Name="Alt" Margin="0,3,0,0">
+                    <TextBlock Text="{Binding PendingText}" Foreground="{StaticResource Faint}" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding AfterText}" Foreground="{StaticResource Bin}" FontSize="11" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding PendingText}" Value="{x:Null}"><Setter TargetName="Alt" Property="Visibility" Value="Collapsed"/></DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+        <!-- Title bar -->
+        <Border Background="#141920" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="14,8">
+            <DockPanel LastChildFill="False">
+                <Border Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#3C86DA" Offset="0"/><GradientStop Color="#3FAE7A" Offset="1"/></LinearGradientBrush></Border.Background>
+                </Border>
+                <TextBlock Text="VidTidy" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Button DockPanel.Dock="Right" x:Name="MoreButton" Style="{StaticResource TBtn}" Content="︙" Click="More_OnClick" AutomationProperties.Name="{l:T 'その他の機能'}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{l:T 'AI検索（言葉で動画の中身を探す）'}" Click="OpenLegacy_OnClick"/>
+                            <MenuItem Header="{l:T '提案タグ（AIが付けたタグを確認する）'}" Click="OpenLegacy_OnClick"/>
+                            <MenuItem Header="{l:T '内容が似ている動画（重複ではない）'}" Click="OpenLegacy_OnClick"/>
+                            <Separator/>
+                            <MenuItem Header="{l:T '解析の詳細'}" Click="OpenLegacy_OnClick"/>
+                            <MenuItem Header="{l:T '最新の状態にする'}" Click="Reload_OnClick" AutomationProperties.AutomationId="OrganizeReloadButton"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource TBtn}" Content="{l:T '設定'}" Click="OpenSettings_OnClick" AutomationProperties.AutomationId="OrganizeSettingsButton"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource TBtn}" Content="{l:T 'すべてのファイル'}" Click="OpenFiles_OnClick" AutomationProperties.AutomationId="OrganizeFilesButton"/>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" MinWidth="200" MaxWidth="480"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Side panel -->
+            <DockPanel Background="{StaticResource Side}" AutomationProperties.Name="{l:T '整理するフォルダー'}">
+                <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="12,10">
+                    <StackPanel>
+                        <Button Style="{StaticResource SideLink}" Click="OpenCleanup_OnClick">
+                            <DockPanel><TextBlock x:Name="SideQueueCount" DockPanel.Dock="Right" Foreground="{StaticResource Muted}"/><TextBlock Text="{l:T '片付け（整理リスト・送り先・履歴）'}" TextWrapping="Wrap"/></DockPanel>
+                        </Button>
+                        <Button Style="{StaticResource SideLink}" Click="OpenFiles_OnClick" Margin="0,6,0,0">
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="›"/><TextBlock Text="{l:T 'すべてのファイル'}"/></DockPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <StackPanel Margin="12,12,12,6">
+                            <DockPanel Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Small}" Padding="8,2" Content="{l:T '＋ 追加'}" Click="AddFolder_OnClick" AutomationProperties.Name="{l:T '整理するフォルダーを追加'}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"><Run Text="{l:T '整理するフォルダー （'}"/><Run Text="{Binding Folders.Count, Mode=OneWay}"/><Run Text="{l:T '）'}"/></TextBlock>
+                                    <Button x:Name="FolderHintOpen" Style="{StaticResource Link}" Content="{l:T '？'}" Margin="6,0,0,0" Click="FolderHintOpen_OnClick" ToolTip="{l:T '「優先」の数字について'}" AutomationProperties.Name="{l:T '「優先」の数字について'}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <DockPanel Margin="8,2,0,6">
+                                <Button x:Name="CheckChangesLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T '変更を確認'}" Click="CheckChanges_OnClick" AutomationProperties.AutomationId="OrganizeCheckChangesButton" ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="{l:T '登録したフォルダーで増えた・変わったファイルを探して解析します。変わっていないファイルは前の解析結果を使います'}"/>
+                                <TextBlock Text="{Binding LastCheckText}" Foreground="{StaticResource Faint}" FontSize="11" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <ItemsControl x:Name="FolderList" ItemsSource="{Binding Folders}" ItemTemplate="{StaticResource FolderItem}" AllowDrop="True" Focusable="False"/>
+                            <TextBlock x:Name="FolderHint" Margin="8,4" Foreground="{StaticResource Faint}" FontSize="11" TextWrapping="Wrap">
+                                <Run Text="{l:T '重複は、ここにあるすべてのフォルダーをまとめて探します。「優先」の数字は、完全に同じ動画を残すときの順位です。フォルダーをつかんで上下に動かすと変えられます。 '}"/><Hyperlink Click="FolderHintClose_OnClick" Foreground="{StaticResource AccentHi}" TextDecorations="{x:Null}"><Run Text="{l:T '閉じる'}"/></Hyperlink>
+                            </TextBlock>
+                            <Button x:Name="FailedLink" Style="{StaticResource SideLink}" Click="OpenFailed_OnClick" Visibility="Collapsed" Margin="0,4,0,0">
+                                <DockPanel><TextBlock x:Name="FailedCount" DockPanel.Dock="Right" Foreground="{StaticResource WarnText}"/><TextBlock Text="{l:T '⚠ 解析できなかったファイル'}" Foreground="{StaticResource WarnText}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/></DockPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Margin="12,6,12,6">
+                            <DockPanel Margin="0,0,0,8">
+                                <Button x:Name="OpenBinLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T 'ごみ箱を開く'}" Click="OpenRecycleBin_OnClick"/>
+                                <TextBlock Text="{l:T 'ドライブの空き'}" Foreground="{StaticResource Muted}" FontSize="12"/>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Drives}" ItemTemplate="{StaticResource DriveItem}" Focusable="False" AutomationProperties.Name="{l:T 'ドライブの空き容量'}"/>
+                            <WrapPanel Margin="4,0" TextElement.FontSize="11" TextElement.Foreground="{StaticResource Faint}">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,10,0"><Border Width="10" Height="7" CornerRadius="2" Background="{StaticResource Trash2}" Margin="0,0,4,0"/><TextBlock Text="{l:T '使用中'}"/></StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,10,0"><Border Width="10" Height="7" CornerRadius="2" Background="{StaticResource Bin}" Margin="0,0,4,0"/><TextBlock Text="{l:T 'ごみ箱の中'}"/></StackPanel>
+                                <StackPanel Orientation="Horizontal"><Border Width="10" Height="7" CornerRadius="2" Background="{StaticResource Keep}" Margin="0,0,4,0"/><TextBlock Text="{l:T '整理リスト'}"/></StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource Line}" ResizeBehavior="PreviousAndNext"
+                          AutomationProperties.Name="{l:T '左の欄の幅を変える'}" ToolTip="{l:T 'ドラッグして左の欄の幅を変えられます'}"/>
+
+            <!-- Work area -->
+            <Grid Grid.Column="2">
+                <!-- First run: no folders yet -->
+                <Grid x:Name="OnboardScreen" Visibility="Collapsed">
+                    <Border MaxWidth="560" Margin="20" Padding="28,44" CornerRadius="14" BorderBrush="{StaticResource Line2}" BorderThickness="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Grid Width="56" Height="50" HorizontalAlignment="Center">
+                                <Border Width="24" Height="10" CornerRadius="4,4,0,0" Background="{StaticResource Folder}" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                <Border Height="42" CornerRadius="6" Background="{StaticResource Folder}" VerticalAlignment="Bottom"/>
+                            </Grid>
+                            <TextBlock Text="{l:T '整理したい動画のフォルダーを追加してください'}" FontSize="22" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                            <TextBlock Foreground="{StaticResource Muted}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="440" Margin="0,12,0,0"
+                                       Text="{l:T '追加すると自動で解析し、登録したフォルダー全体から、同じ動画やよく似た動画を見つけます。元のファイルは、あなたが承認するまで変更しません。'}"/>
+                            <Button Style="{StaticResource Primary}" Content="{l:T 'フォルダーを選ぶ'}" HorizontalAlignment="Center" Margin="0,14,0,0" Click="AddFolder_OnClick"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Everything cleaned -->
+                <Grid x:Name="CleanScreen" Visibility="Collapsed">
+                    <Border MaxWidth="560" Margin="20" Padding="28,44" CornerRadius="14" BorderBrush="{StaticResource Line2}" BorderThickness="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="{l:T '重複はすべて片付きました'}" FontSize="22" FontWeight="Bold" TextAlignment="Center"/>
+                            <TextBlock x:Name="CleanText" Foreground="{StaticResource Muted}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="440" Margin="0,12,0,0"/>
+                            <WrapPanel HorizontalAlignment="Center" Margin="0,16,0,0">
+                                <Button Style="{StaticResource BtnBase}" Content="{l:T 'ごみ箱を開く'}" Margin="4" Click="OpenRecycleBin_OnClick"/>
+                                <Button Style="{StaticResource BtnBase}" Content="{l:T 'いま変更を確認'}" Margin="4" Click="CheckChanges_OnClick"/>
+                                <Button Style="{StaticResource BtnBase}" Content="{l:T '片付けの履歴を見る'}" Margin="4" Click="OpenCleanup_OnClick"/>
+                                <Button Style="{StaticResource Primary}" Content="{l:T 'フォルダーを追加'}" Margin="4" Click="AddFolder_OnClick"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Analysis / change check details -->
+                <ScrollViewer x:Name="AnalysisScreen" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="AnalysisPanel" Margin="28,24" MaxWidth="860" HorizontalAlignment="Left"/>
+                </ScrollViewer>
+
+                <Grid x:Name="FlowScreen">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                    <!-- Analysis strip -->
+                    <Border x:Name="AnalysisLine" Background="#16202C" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="18,7" AutomationProperties.LiveSetting="Polite">
+                        <DockPanel>
+                            <Ellipse x:Name="AnalysisPulse" Width="8" Height="8" Fill="{StaticResource AccentHi}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <Button x:Name="ShowAnalysisLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T '詳しく見る'}" Margin="12,0,0,0" Click="ShowAnalysis_OnClick"/>
+                            <Button x:Name="ShowNewResultsLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T '今すぐ表示'}" Margin="12,0,0,0" Visibility="Collapsed" Click="ShowNewResults_OnClick" AutomationProperties.AutomationId="OrganizeShowNewResultsButton"/>
+                            <TextBlock x:Name="StripPercent" DockPanel.Dock="Right" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <Border x:Name="StripBar" DockPanel.Dock="Right" Width="140" Height="6" CornerRadius="3" Background="{StaticResource Line}" VerticalAlignment="Center" Margin="10,0,0,0" ClipToBounds="True">
+                                <ProgressBar Value="{Binding ProgressPercent, Mode=OneWay}" Maximum="100" Height="6" Background="Transparent" BorderThickness="0" Foreground="{StaticResource Accent}"/>
+                            </Border>
+                            <TextBlock Text="{Binding AnalysisText}" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Next action: steps, numbers, what to do, and the one big button under it -->
+                    <Border Grid.Row="1" Padding="18,12,18,14" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" AutomationProperties.AutomationId="OrganizeNextAction" AutomationProperties.LiveSetting="Polite">
+                        <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#1E2B3B" Offset="0"/><GradientStop Color="#1A2029" Offset="0.6"/></LinearGradientBrush></Border.Background>
+                        <StackPanel>
+                            <WrapPanel Margin="0,0,0,8">
+                                <StackPanel x:Name="StepsPanel" Orientation="Horizontal" Margin="0,0,16,4" AutomationProperties.Name="{l:T '整理の手順'}"/>
+                                <TextBlock x:Name="StatsLine" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="TitleMark" Style="{StaticResource Mark}" Background="#3FAE7A" Margin="0,0,8,0"><TextBlock Text="=" FontWeight="Bold" FontSize="12" Foreground="#0C1B13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <TextBlock Text="{Binding NextAction.Title}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding NextAction.Description}" Foreground="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap"/>
+                            <Button x:Name="NextActionButton" Style="{StaticResource Primary}" HorizontalAlignment="Left" Margin="0,10,0,0" Padding="22,10" FontSize="15"
+                                    Content="{Binding NextAction.ButtonLabel}" Click="NextAction_OnClick" AutomationProperties.AutomationId="OrganizeNextActionButton"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <Border x:Name="ListBar" DockPanel.Dock="Top" Background="#151B23" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="14,6">
+                                <DockPanel>
+                                    <Button x:Name="GoalLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T '空けたい量を決める'}" Click="GoalLink_OnClick" Margin="10,0,0,0"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{l:T '並べ方'}" Foreground="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <ComboBox x:Name="SortBox" FontSize="12" SelectionChanged="SortBox_OnSelectionChanged" AutomationProperties.Name="{l:T '並べ方'}">
+                                            <ComboBoxItem Content="{l:T '片付けられる量が大きい順'}"/>
+                                            <ComboBoxItem Content="{l:T '見つかった順'}"/>
+                                        </ComboBox>
+                                        <TextBlock x:Name="GoalText" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="GoalForm" DockPanel.Dock="Top" Visibility="Collapsed" Background="#171D25" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="14,8">
+                                <StackPanel>
+                                    <WrapPanel>
+                                        <ComboBox x:Name="GoalDrive" FontSize="13" MinWidth="130" VerticalAlignment="Center" AutomationProperties.Name="{l:T '空けたいドライブ'}"/>
+                                        <TextBlock Text="{l:T 'を'}" VerticalAlignment="Center" Margin="6,0"/>
+                                        <TextBox x:Name="GoalSize" Width="70" TextAlignment="Right" VerticalContentAlignment="Center" AutomationProperties.Name="{l:T '空けたい量（GB）'}"/>
+                                        <TextBlock Text="{l:T 'GB 空けたい'}" VerticalAlignment="Center" Margin="6,0,12,0"/>
+                                        <Button Style="{StaticResource Small}" Content="{l:T '決める'}" Click="GoalSet_OnClick" Margin="0,0,6,0"/>
+                                        <Button x:Name="GoalClear" Style="{StaticResource Small}" Content="{l:T '目標を消す'}" Click="GoalClear_OnClick" Margin="0,0,6,0"/>
+                                        <Button Style="{StaticResource Small}" Content="{l:T 'やめる'}" Click="GoalCancel_OnClick"/>
+                                    </WrapPanel>
+                                    <TextBlock Margin="0,6,0,0" FontSize="11" Foreground="{StaticResource Faint}" TextWrapping="Wrap"
+                                               Text="{l:T 'そのドライブが空く組を上に並べ、どこまで片付ければ届くかを一覧に線で示します。ごみ箱へ送った分は、ごみ箱を空にしたときに空きます。'}"/>
+                                </StackPanel>
+                            </Border>
+                        <ScrollViewer x:Name="ListScroll" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{l:T '重複の一覧'}">
+                            <StackPanel>
+                                <Border x:Name="LaterLine" Visibility="Collapsed" Margin="14,12" Padding="14,10" CornerRadius="8" BorderBrush="{StaticResource Line2}" BorderThickness="1">
+                                    <DockPanel>
+                                        <Button x:Name="PeekLink" DockPanel.Dock="Right" Style="{StaticResource Link}" Content="{l:T '先に見る'}" Click="Peek_OnClick" Margin="10,0,0,0"/>
+                                        <Border Style="{StaticResource Mark}" Background="#E6C547" Margin="0,0,8,0"><TextBlock Text="≈" FontWeight="Bold" FontSize="12" Foreground="#15130A" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <TextBlock x:Name="LaterText" FontSize="13" Foreground="{StaticResource Muted}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Border>
+                                <StackPanel x:Name="QueueSection">
+                                    <Border Style="{StaticResource SectionHead}">
+                                        <DockPanel>
+                                            <ToggleButton x:Name="QueueToggle" Style="{StaticResource Caret}" Checked="QueueToggle_OnChanged" Unchecked="QueueToggle_OnChanged" AutomationProperties.Name="{l:T '整理リストの一覧を開閉'}"/>
+                                            <Border Style="{StaticResource PillTrash}" Margin="6,0,8,0"><TextBlock Text="{l:T '整理リスト'}" FontSize="11" Foreground="{StaticResource Trash}"/></Border>
+                                            <TextBlock Text="{l:T 'これから片付けるもの'}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="QueueMeta" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <StackPanel x:Name="QueueItems">
+                                        <ItemsControl ItemsSource="{Binding QueueList}" ItemTemplate="{StaticResource CompactCard}" Focusable="False"/>
+                                        <StackPanel x:Name="QueueSingles"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel x:Name="ExactSection">
+                                    <Border Style="{StaticResource SectionHead}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" x:Name="ExactPill" Style="{StaticResource PillKeep}"><TextBlock Text="{l:T 'ルールで選び済み'}" FontSize="11" Foreground="{StaticResource Keep}"/></Border>
+                                            <ToggleButton x:Name="ExactToggle" Style="{StaticResource Caret}" IsChecked="True" AutomationProperties.Name="{l:T '完全に同じの一覧を開閉'}"/>
+                                            <ContentControl Content="{StaticResource SameMark}" Focusable="False" Margin="6,0,8,0"/>
+                                            <TextBlock Text="{l:T '完全に同じ'}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" Text="{l:TBinding ExactOpenCount, TFormat={}{0}組・中身がすべて同じ}"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <ItemsControl ItemsSource="{Binding ExactList}" ItemTemplate="{StaticResource CompactCard}" Focusable="False"
+                                                  Visibility="{Binding IsChecked, ElementName=ExactToggle, Converter={StaticResource Visible}}"/>
+                                </StackPanel>
+                                <StackPanel x:Name="SimilarSection">
+                                    <Border Style="{StaticResource SectionHead}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource PillInfo}"><TextBlock Text="{l:T '1組ずつ確認'}" FontSize="11" Foreground="{StaticResource AccentHi}"/></Border>
+                                            <ToggleButton x:Name="SimilarToggle" Style="{StaticResource Caret}" IsChecked="True" AutomationProperties.Name="{l:T 'よく似ているの一覧を開閉'}"/>
+                                            <Border Style="{StaticResource Mark}" Background="#E6C547" Margin="6,0,8,0"><TextBlock Text="≈" FontWeight="Bold" FontSize="12" Foreground="#15130A" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <TextBlock Text="{l:T 'よく似ている'}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" Text="{l:TBinding SimilarOpenCount, TFormat={}{0}組・一致率85%以上}"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <ItemsControl ItemsSource="{Binding SimilarList}" ItemTemplate="{StaticResource GroupCard}" Focusable="False"
+                                                  Visibility="{Binding IsChecked, ElementName=SimilarToggle, Converter={StaticResource Visible}}"/>
+                                </StackPanel>
+                                <StackPanel x:Name="CheckSection">
+                                    <Border Style="{StaticResource SectionHead}">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource PillInfo}"><TextBlock Text="{l:T '1組ずつ確認'}" FontSize="11" Foreground="{StaticResource AccentHi}"/></Border>
+                                            <ToggleButton x:Name="CheckToggle" Style="{StaticResource Caret}" IsChecked="False" AutomationProperties.Name="{l:T '念のため確認の一覧を開閉'}"/>
+                                            <Border Style="{StaticResource Mark}" Background="#E4625B" Margin="6,0,8,0"><TextBlock Text="!" FontWeight="Bold" FontSize="12" Foreground="#1D0B0A" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <TextBlock Text="{l:T '念のため確認'}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" Text="{l:TBinding NeedsCheckOpenCount, TFormat={}{0}組・一致率85%未満}"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <ItemsControl ItemsSource="{Binding CheckList}" ItemTemplate="{StaticResource GroupCard}" Focusable="False"
+                                                  Visibility="{Binding IsChecked, ElementName=CheckToggle, Converter={StaticResource Visible}}"/>
+                                </StackPanel>
+                                <TextBlock x:Name="ListEmpty" Text="{l:T 'この条件の重複はありません。'}" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="20,60" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                        </DockPanel>
+
+                        <!-- Detail / compare -->
+                        <Border Grid.Column="1" BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" AutomationProperties.AutomationId="OrganizeDetail">
+                                <StackPanel x:Name="DetailPanel" Margin="18,16"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- Action bar -->
+                    <Border Grid.Row="3" Background="#141920" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="18,12">
+                        <DockPanel>
+                            <Button x:Name="RunButton" DockPanel.Dock="Right" Style="{StaticResource Outline}" Content="{l:T '確認して実行 →'}" IsEnabled="False"
+                                    Click="Run_OnClick" AutomationProperties.AutomationId="OrganizeRunButton"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Ghost}" Content="{l:T 'リストと送り先'}" Margin="0,0,10,0" Click="OpenCleanup_OnClick"/>
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock FontSize="15"><Run Text="{l:T '整理リスト '}"/><Run Text="{l:TBinding QueueFileCount, Mode=OneWay, TFormat={}{0}件}" FontWeight="Bold" FontSize="18"/><Run Text="{l:T '・'}"/><Run x:Name="QueueSize" FontWeight="Bold" FontSize="18"/></TextBlock>
+                                <TextBlock Foreground="{StaticResource Muted}" FontSize="12">
+                                    <Run Text="{l:T '送り先: Windowsのごみ箱 '}"/><Hyperlink Click="OpenRecycleBin_OnClick" Foreground="{StaticResource AccentHi}" TextDecorations="{x:Null}"><Run Text="{l:T '開く'}"/></Hyperlink><Run x:Name="LimitText" Foreground="{StaticResource Warn}"/>
+                                </TextBlock>
+                                <TextBlock x:Name="GoalLeftText" FontSize="12" Foreground="{StaticResource Keep}" Visibility="Collapsed"/>
+                            </StackPanel>
+                            <Border x:Name="QueueMeterBox" DockPanel.Dock="Left" Width="110" Height="6" CornerRadius="3" Background="{StaticResource Line}" Margin="14,0,0,0" VerticalAlignment="Center" ClipToBounds="True">
+                                <ProgressBar Value="{Binding QueueMeter, Mode=OneWay}" Maximum="100" Height="6" Background="Transparent" BorderThickness="0" Foreground="{StaticResource Warn}"/>
+                            </Border>
+                            <Border/>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Overlays: modal dialogs (centre) and the drawer (right), over a dark scrim -->
+        <Border x:Name="Overlay" Grid.RowSpan="2" Background="#99050A0F" Visibility="Collapsed" MouseLeftButtonDown="Scrim_OnMouseDown">
+            <Grid>
+                <Border x:Name="OverlayCard" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line2}" BorderThickness="1" CornerRadius="12" MaxWidth="780" Margin="24,20"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="Card_OnMouseDown">
+                    <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="10" Opacity="0.5" Color="Black"/></Border.Effect>
+                    <DockPanel>
+                        <Border x:Name="OverlayHeaderBox" DockPanel.Dock="Top" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="20,16,20,10">
+                            <StackPanel x:Name="OverlayHeader"/>
+                        </Border>
+                        <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="20,12">
+                            <DockPanel>
+                                <TextBlock x:Name="OverlayFootNote" DockPanel.Dock="Left" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                <StackPanel x:Name="OverlayButtons" Orientation="Horizontal" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                        </Border>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="OverlayBody" Margin="20,14"/></ScrollViewer>
+                    </DockPanel>
+                </Border>
+                <Border x:Name="DrawerCard" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line2}" BorderThickness="1,0,0,0" Width="780" HorizontalAlignment="Right"
+                        Visibility="Collapsed" MouseLeftButtonDown="Card_OnMouseDown">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="16,12">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnBase}" Content="{l:T '閉じる'}" Click="CloseOverlay_OnClick"/>
+                                <StackPanel x:Name="DrawerHeader" Orientation="Horizontal" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="DrawerBody"/></ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Toast -->
+        <Border x:Name="ToastBox" Grid.RowSpan="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,80" Padding="14,8" CornerRadius="8"
+                Background="{StaticResource Raised}" BorderBrush="{StaticResource Line2}" BorderThickness="1" Visibility="Collapsed" IsHitTestVisible="False"
+                AutomationProperties.LiveSetting="Polite">
+            <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Color="Black"/></Border.Effect>
+            <TextBlock x:Name="ToastText" TextWrapping="Wrap" MaxWidth="640"/>
+        </Border>
+    </Grid>
+</UserControl>

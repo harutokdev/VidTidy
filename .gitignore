@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local tools, runtimes, models and data (never published)
+/.tooling/
+/runtime/
+/models/
+/.manus-dev/
+/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Logs and test results
+*.log
+TestResults/

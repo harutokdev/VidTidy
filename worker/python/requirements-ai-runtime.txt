@@ -1,0 +1,12 @@
+# Phase 3 visual semantic search runtime dependencies for Portable Python 3.10 x64.
+# This file is consumed only by an explicit provisioning step; application runtime
+# never invokes pip, Hugging Face Hub, a version check, or a package download.
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+torch==2.5.1+cu121
+transformers==4.49.0
+# Required by SiglipTokenizer for the local tokenizer.model artifact.
+sentencepiece==0.2.0
+safetensors==0.5.2
+Pillow==11.1.0
+numpy==1.26.4

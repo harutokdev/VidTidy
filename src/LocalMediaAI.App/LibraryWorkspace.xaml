@@ -1,0 +1,72 @@
+<UserControl x:Class="LocalMediaAI.App.LibraryWorkspace" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:l="clr-namespace:LocalMediaAI.App.Localization" xmlns:local="clr-namespace:LocalMediaAI.App" SizeChanged="OnSizeChanged" PreviewKeyDown="OnKeyDown">
+ <UserControl.Resources>
+  <BooleanToVisibilityConverter x:Key="Visible"/><local:LibraryDisplayConverter x:Key="Display"/><local:ThumbnailCacheImageConverter x:Key="Image"/><local:FileSizeDisplayConverter x:Key="FileSize"/><local:DurationDisplayConverter x:Key="Duration"/>
+  <Style x:Key="NumericCell" TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="Margin" Value="0,0,6,0"/></Style>
+  <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#E4EAF2"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+  <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"><Setter Property="Foreground" Value="#E4EAF2"/><Setter Property="Margin" Value="0,4,12,4"/></Style>
+  <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Margin" Value="0,4,8,4"/><Setter Property="Padding" Value="10,5"/><Setter Property="Background" Value="#285F9E"/><Setter Property="Foreground" Value="White"/><Setter Property="IsDefault" Value="False"/></Style>
+ </UserControl.Resources>
+ <Grid><DockPanel Margin="4" KeyboardNavigation.TabNavigation="Local">
+  <StackPanel DockPanel.Dock="Top" KeyboardNavigation.TabIndex="0">
+   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <DockPanel><TextBlock DockPanel.Dock="Left" Text="{l:T 'メディア検索'}" VerticalAlignment="Center" Margin="0,0,8,0"/><TextBox x:Name="MediaSearch" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,8,4" AutomationProperties.Name="{l:T 'ライブラリのメディア検索'}" ToolTip="{l:T 'ファイル名・パス・コーデックを検索。タグ条件使用中はタグ検索が優先されます。'}"/></DockPanel>
+    <WrapPanel Grid.Column="1"><Button Content="{l:T '更新'}" Command="{Binding RefreshCommand}"/><Button Content="{l:T 'フォルダーを追加'}" Command="{Binding RegisterRootCommand}"/><ToggleButton x:Name="SettingsToggle" Content="{l:T '設定'}" IsChecked="{Binding IsOpen, ElementName=LibrarySettings, Mode=TwoWay}" Padding="12,5" Margin="4" AutomationProperties.Name="{l:T 'ライブラリ設定と技術情報'}"/></WrapPanel>
+   </Grid>
+   <WrapPanel><CheckBox x:Name="SidebarToggle" Content="{l:T '登録フォルダー'}" IsChecked="True" Checked="OnPanelToggle" Unchecked="OnPanelToggle"/><CheckBox x:Name="DetailToggle" Content="{l:T '詳細'}" IsChecked="True" Checked="OnPanelToggle" Unchecked="OnPanelToggle"/>
+    <Expander Header="{l:T 'タグで絞り込む'}" IsExpanded="False"><StackPanel Width="290"><TextBox Text="{Binding TagFilterText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T 'タグ検索条件'}"/><CheckBox Content="{l:T 'AI提案タグを含む'}" IsChecked="{Binding TagFilterIncludeSuggested}"/><TextBlock Text="{l:T 'タグ条件がある場合、既存仕様どおりメディア検索語よりタグ条件が優先されます。'}" FontSize="11"/><Button Content="{l:T 'タグ条件を適用'}" Command="{Binding ApplyTagFilterCommand}"/></StackPanel></Expander>
+    <Button Content="{l:T '検索・タグ条件を解除'}" Command="{Binding LibraryClearFiltersCommand}" Visibility="{Binding LibraryHasFilters, Converter={StaticResource Visible}}"/>
+   </WrapPanel>
+   <TextBlock Text="{Binding LibraryContentMessage}" Margin="0,4" AutomationProperties.LiveSetting="Polite" AutomationProperties.AutomationId="LibraryContentState"/>
+   <TextBlock Text="{Binding LibraryFolderFeedback}" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
+  <Grid x:Name="ContentGrid" KeyboardNavigation.TabNavigation="Local">
+   <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="200"/><ColumnDefinition Width="*"/><ColumnDefinition x:Name="DetailColumn" Width="300"/></Grid.ColumnDefinitions>
+   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <Border x:Name="FolderPanel" Grid.Column="0" Background="#1C222B" Padding="8" Margin="0,0,8,0" KeyboardNavigation.TabIndex="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" IsTabStop="False"><StackPanel>
+     <TextBlock Text="{l:T '登録フォルダー'}" FontSize="17"/>
+     <Button Content="{l:T 'すべてのフォルダーを表示'}" Click="ShowAll" AutomationProperties.Name="{l:T '管理対象を変えず、すべての登録フォルダーを表示'}"/>
+     <ListBox x:Name="ManagementFolders" ItemsSource="{Binding LibraryRegisteredFolders}" SelectedItem="{Binding SelectedRoot}" AutomationProperties.Name="{l:T '管理対象の登録フォルダー。選択だけでは表示範囲は変わりません'}">
+      <ListBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/><TextBlock Text="{Binding Availability, Converter={StaticResource Display}}"/><TextBlock Text="{Binding ConfiguredPath}" FontSize="10"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+     </ListBox>
+     <TextBlock Text="{l:T '選択はフォルダー管理用です。表示範囲は上部の対象範囲で確認できます。'}" FontSize="11" Margin="0,6"/>
+     <Button Content="{l:T 'このフォルダーを表示'}" Command="{Binding ViewManagedFolderCommand}"/><Button Content="{l:T '選択フォルダーを再スキャン'}" Command="{Binding RescanCommand}"/>
+     <Expander Header="{l:T 'フォルダーの登録管理'}" IsExpanded="False"><StackPanel><TextBlock Text="{l:T '登録解除は元ファイルを削除しません。情報の保持は既存の設定に従います。'}" FontSize="11"/><Button Content="{l:T '選択フォルダーの登録解除'}" Command="{Binding UnregisterRootCommand}"/></StackPanel></Expander>
+    </StackPanel></ScrollViewer>
+   </Border>
+   <DockPanel x:Name="MediaArea" Grid.Column="1" KeyboardNavigation.TabIndex="1">
+    <WrapPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center"><Button Command="{Binding PreviousPageCommand}" Content="{l:T '前'}"/><TextBlock Text="{Binding PageStatus}" VerticalAlignment="Center" Margin="8"/><Button Command="{Binding NextPageCommand}" Content="{l:T '次'}"/></WrapPanel>
+    <DataGrid x:Name="MediaTable" ItemsSource="{Binding MediaItems}" SelectedItem="{Binding SelectedMedia}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" EnableRowVirtualization="True" EnableColumnVirtualization="True" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="{l:T 'ライブラリのメディア一覧'}" AutomationProperties.AutomationId="MediaFirstTable">
+     <DataGrid.RowStyle><Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}"><Setter Property="AutomationProperties.Name" Value="{Binding FileName}"/><Setter Property="AutomationProperties.HelpText" Value="{Binding Path}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="Transparent"/><Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#8FC5FF"/></Trigger></Style.Triggers></Style></DataGrid.RowStyle>
+     <DataGrid.Columns>
+      <DataGridTemplateColumn Header="{l:T '画像'}" Width="64"><DataGridTemplateColumn.CellTemplate><DataTemplate><Grid Width="52" Height="34"><TextBlock Text="{l:T '画像なし'}" FontSize="9"/><Image local:LibraryThumbnailLoader.CacheRoot="{Binding DataContext.ThumbnailCacheRoot, RelativeSource={RelativeSource AncestorType=UserControl}}" local:LibraryThumbnailLoader.RelativePath="{Binding ThumbnailRelativePath}" Stretch="Uniform"/></Grid></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+      <DataGridTextColumn Header="{l:T 'ファイル名'}" Binding="{Binding FileName}" Width="2*" MinWidth="140"/><DataGridTextColumn Header="{l:T '場所'}" Binding="{Binding Path}" Width="3*" MinWidth="160"/>
+      <DataGridTextColumn Header="{l:T '形式'}" Binding="{Binding Path, Converter={StaticResource Display}}" Width="65"/><DataGridTextColumn Header="{l:T 'サイズ'}" Binding="{Binding SizeBytes, Converter={StaticResource FileSize}}" SortMemberPath="SizeBytes" ElementStyle="{StaticResource NumericCell}" Width="90"/><DataGridTextColumn Header="{l:T '長さ'}" Binding="{Binding Metadata.DurationSeconds, Converter={StaticResource Duration}}" SortMemberPath="Metadata.DurationSeconds" ElementStyle="{StaticResource NumericCell}" Width="80"/>
+      <DataGridTextColumn Header="{l:T '利用状態'}" Binding="{Binding PresenceState, Converter={StaticResource Display}}" Width="140"/>
+     </DataGrid.Columns>
+    </DataGrid>
+   </DockPanel>
+   <Border x:Name="DetailPanel" Grid.Column="2" Background="#1C222B" Padding="8" Margin="8,0,0,0" KeyboardNavigation.TabIndex="2">
+    <DockPanel><Button x:Name="BackToTable" DockPanel.Dock="Bottom" Content="{l:T '一覧に戻る'}" Click="ReturnToTable" Visibility="Collapsed"/><WrapPanel DockPanel.Dock="Bottom" Visibility="{Binding LibraryHasSelection, Converter={StaticResource Visible}}"><Button Content="{l:T 'プレビュー'}" Command="{Binding LibraryPreviewCommand}"/><Button Content="{l:T 'ファイルを整理'}" Command="{Binding HandoffLibraryMediaCommand}" AutomationProperties.Name="{l:T '選択メディアを明示的にファイル操作へ渡す'}"/></WrapPanel>
+     <ScrollViewer VerticalScrollBarVisibility="Auto" IsTabStop="False"><StackPanel>
+      <TextBlock Text="{Binding LibrarySelectionHint}"/>
+      <TextBlock Text="{Binding OperationHandoffFeedback}" AutomationProperties.LiveSetting="Polite"/>
+      <TextBlock Text="{Binding LibraryPreviewFeedback}" AutomationProperties.LiveSetting="Polite"/>
+      <StackPanel Visibility="{Binding LibraryHasSelection, Converter={StaticResource Visible}}"><TextBlock Text="{Binding SelectedMedia.FileName}" FontWeight="SemiBold" FontSize="18"/><Image x:Name="SelectedThumbnailImage" Height="110" local:LibraryThumbnailLoader.DecodeWidth="440" local:LibraryThumbnailLoader.CacheRoot="{Binding ThumbnailCacheRoot}" local:LibraryThumbnailLoader.RelativePath="{Binding SelectedMedia.ThumbnailRelativePath}" Stretch="Uniform"/><TextBlock Text="{Binding SelectedMedia.Path}"/><TextBlock Text="{Binding LibraryMediaFacts}"/><TextBlock Text="{Binding SelectedMedia.PresenceState, Converter={StaticResource Display}}"/>
+       <Expander local:DeveloperDiagnostics.Section="True" Header="{l:T 'メディアの技術情報'}" IsExpanded="False"><StackPanel><TextBlock Text="{Binding SelectedMedia.MediaFileId, StringFormat=MediaFileId: {0}}"/><TextBlock Text="{Binding SelectedMedia.IndexingStatusDisplay}"/><TextBlock Text="{Binding SelectedMedia.LatestJobState}"/><TextBlock Text="{Binding SelectedMedia.LatestErrorCode}"/><TextBlock Text="{Binding Path=(local:LibraryThumbnailLoader.LoadStatus), ElementName=SelectedThumbnailImage, StringFormat='Thumbnail: {0}'}"/><TextBlock Text="{Binding Path=(local:LibraryThumbnailLoader.LoadError), ElementName=SelectedThumbnailImage, StringFormat='Thumbnail decode: {0}'}"/></StackPanel></Expander>
+      </StackPanel>
+     </StackPanel></ScrollViewer>
+    </DockPanel>
+   </Border>
+  </Grid>
+ </DockPanel>
+ <Popup x:Name="LibrarySettings" PlacementTarget="{Binding ElementName=SettingsToggle}" Placement="Bottom" StaysOpen="False" Closed="OnSettingsClosed">
+  <Border Background="#1C222B" BorderBrush="#8FC5FF" BorderThickness="1" Padding="16" Width="360" MaxHeight="440"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+   <TextBlock Text="{l:T 'ライブラリ設定'}" FontSize="18"/><CheckBox Content="{l:T '開発者モード'}" IsChecked="{Binding IsDeveloperMode}" AutomationProperties.Name="{l:T '内部状態や診断情報を表示する開発者モード'}"/><TextBlock Text="{l:T '内部状態や診断情報を表示します。通常操作や安全確認は変更しません。'}"/><TextBlock Text="{Binding DeveloperModeFeedback}" AutomationProperties.LiveSetting="Polite"/><TextBlock Text="{l:T '情報の保持期間'}" FontWeight="SemiBold" Margin="0,10,0,4"/><TextBlock Text="{l:T '正の整数日数、または「無制限」。保持中の対象にも適用され、保存時には削除処理を行いません。元メディアの削除設定ではありません。'}"/>
+   <TextBlock Text="{l:T 'ファイル情報（日数）'}"/><TextBox Text="{Binding FileRetentionText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T 'ファイル情報の保持日数'}"/><TextBlock Text="{l:T 'フォルダー情報（日数）'}"/><TextBox Text="{Binding FolderRetentionText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T 'フォルダー情報の保持日数'}"/><TextBlock Text="{l:T 'ドライブ情報（日数）'}"/><TextBox Text="{Binding DriveRetentionText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T 'ドライブ情報の保持日数'}"/><Button Content="{l:T '保持期間を保存'}" Command="{Binding SaveRetentionSettingsCommand}"/>
+   <TextBlock Text="{Binding LibrarySettingsFeedback}" AutomationProperties.LiveSetting="Polite"/>
+   <Expander local:DeveloperDiagnostics.Section="True" Header="{l:T 'AI機能・ライブラリの診断情報'}" IsExpanded="False"><StackPanel><Button Content="{l:T 'AI機能を診断'}" Command="{Binding WorkerDiagnosticCommand}"/><TextBlock Text="{Binding WorkerStatusText}"/><TextBlock Text="{Binding StatusText}"/><TextBlock Text="{Binding ErrorText}"/></StackPanel></Expander>
+   <Button Content="{l:T '閉じる'}" Click="CloseSettings"/>
+  </StackPanel></ScrollViewer></Border>
+ </Popup>
+ </Grid></UserControl>

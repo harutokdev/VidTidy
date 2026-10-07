@@ -1,0 +1,170 @@
+<UserControl x:Class="LocalMediaAI.App.FileOperationWorkspace" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:l="clr-namespace:LocalMediaAI.App.Localization" xmlns:local="clr-namespace:LocalMediaAI.App" PreviewKeyDown="OnKeyDown" Background="#0C1C2A">
+ <UserControl.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="VisualPrimitives.xaml"/></ResourceDictionary.MergedDictionaries>
+  <BooleanToVisibilityConverter x:Key="Visible"/>
+  <local:ThumbnailCacheImageConverter x:Key="TargetImage"/>
+  <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#EAF2FC"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+  <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"><Setter Property="Foreground" Value="#EAF2FC"/><Setter Property="Margin" Value="0,8,0,4"/></Style>
+  <Style TargetType="Button" BasedOn="{StaticResource VisualSecondaryButton}"><Setter Property="Margin" Value="0,4,8,4"/><Setter Property="IsDefault" Value="False"/></Style>
+  <Style x:Key="Single" TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding OperationBatchMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Batch" TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding OperationBatchMode}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="AcknowledgementControl" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}"><Setter Property="IsEnabled" Value="{Binding OperationEditorsEnabled}"/><Style.Triggers><DataTrigger Binding="{Binding OperationNeedsPreflightRetry}" Value="True"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Step1" TargetType="Border" BasedOn="{StaticResource VisualStepperItem}"><Style.Triggers><DataTrigger Binding="{Binding OperationCurrentStep}" Value="1"><Setter Property="Background" Value="#0B67DF"/><Setter Property="BorderBrush" Value="#5EABFF"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Step2" TargetType="Border" BasedOn="{StaticResource VisualStepperItem}"><Style.Triggers><DataTrigger Binding="{Binding OperationCurrentStep}" Value="2"><Setter Property="Background" Value="#0B67DF"/><Setter Property="BorderBrush" Value="#5EABFF"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Step3" TargetType="Border" BasedOn="{StaticResource VisualStepperItem}"><Style.Triggers><DataTrigger Binding="{Binding OperationCurrentStep}" Value="3"><Setter Property="Background" Value="#0B67DF"/><Setter Property="BorderBrush" Value="#5EABFF"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Step4" TargetType="Border" BasedOn="{StaticResource VisualStepperItem}"><Style.Triggers><DataTrigger Binding="{Binding OperationCurrentStep}" Value="4"><Setter Property="Background" Value="#0B67DF"/><Setter Property="BorderBrush" Value="#5EABFF"/></DataTrigger></Style.Triggers></Style>
+  </ResourceDictionary>
+ </UserControl.Resources>
+ <DockPanel KeyboardNavigation.TabNavigation="Local">
+  <Border DockPanel.Dock="Top" Background="#152B3D" BorderBrush="#29455D" BorderThickness="0,0,0,1" Padding="20,14" Margin="0,0,0,4">
+   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <StackPanel><TextBlock Text="{l:T 'ファイルを整理'}" Style="{StaticResource VisualWorkspaceTitle}"/><TextBlock Text="{l:T '選択したファイルを安全に整理します'}" Style="{StaticResource VisualSupportingText}"/></StackPanel>
+    <CheckBox Grid.Column="1" VerticalAlignment="Center" IsChecked="{Binding OperationBatchMode}" Content="{l:T '一括操作の表示'}" AutomationProperties.Name="{l:T '単一操作と一括操作の表示切替。準備状態はそれぞれ保持します'}"/>
+   </Grid>
+  </Border>
+  <!-- The stepper is a projection of the currently valid plan/preflight/confirmation, not a history. -->
+  <Grid DockPanel.Dock="Top" MaxWidth="1360" HorizontalAlignment="Stretch" Margin="18,10,18,10">
+   <UniformGrid Columns="4">
+    <StackPanel Orientation="Horizontal" Margin="8,0"><Border Style="{StaticResource Step1}"><TextBlock Text="1" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{l:T '対象と操作'}" FontWeight="SemiBold"/><TextBlock Text="{l:T 'ファイルと操作を選択'}" Style="{StaticResource VisualSupportingText}" FontSize="11"/></StackPanel></StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0"><Border Style="{StaticResource Step2}"><TextBlock Text="2" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{l:T '実行前確認'}" FontWeight="SemiBold"/><TextBlock Text="{l:T '必要な確認を実施'}" Style="{StaticResource VisualSupportingText}" FontSize="11"/></StackPanel></StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0"><Border Style="{StaticResource Step3}"><TextBlock Text="3" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{l:T '最終確認'}" FontWeight="SemiBold"/><TextBlock Text="{l:T '実行内容を確認'}" Style="{StaticResource VisualSupportingText}" FontSize="11"/></StackPanel></StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="8,0"><Border Style="{StaticResource Step4}"><TextBlock Text="4" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Margin="9,0,0,0" VerticalAlignment="Center"><TextBlock Text="{l:T '結果'}" FontWeight="SemiBold"/><TextBlock Text="{l:T '処理の結果'}" Style="{StaticResource VisualSupportingText}" FontSize="11"/></StackPanel></StackPanel>
+   </UniformGrid>
+  </Grid>
+  <Border DockPanel.Dock="Bottom" KeyboardNavigation.TabIndex="2" Style="{StaticResource VisualMainSurface}" Padding="12" Margin="18,0,18,8" MaxWidth="1360" HorizontalAlignment="Stretch" Visibility="{Binding OperationExpandTargetEditor, Converter={StaticResource Visible}}">
+   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <StackPanel VerticalAlignment="Center"><TextBlock Text="{l:T '操作未選択では実行前確認を始められません。'}" Style="{StaticResource VisualSupportingText}"/><TextBlock Text="{l:T '完全に削除 — 元に戻せません。ごみ箱を使用しません。'}" Foreground="#FFD59B" FontWeight="SemiBold" Visibility="{Binding OperationIsPermanentDelete, Converter={StaticResource Visible}}"/></StackPanel>
+    <StackPanel Grid.Column="1" Orientation="Horizontal"><Button Content="{l:T '実行前確認へ'}" Style="{StaticResource VisualPrimaryButton}" Command="{Binding CreateOperationDryRunCommand}" Visibility="{Binding OperationSingleMode, Converter={StaticResource Visible}}"/><Button Content="{l:T '全対象の実行前確認へ'}" Style="{StaticResource VisualPrimaryButton}" Command="{Binding CreateControlledBatchDryRunCommand}" Visibility="{Binding OperationBatchMode, Converter={StaticResource Visible}}"/></StackPanel>
+   </Grid>
+  </Border>
+  <Border DockPanel.Dock="Bottom" KeyboardNavigation.TabIndex="2" Style="{StaticResource VisualMainSurface}" Padding="12" Margin="18,0,18,8" MaxWidth="1360" HorizontalAlignment="Stretch" Visibility="{Binding OperationShowPreflight, Converter={StaticResource Visible}}">
+   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock Text="{l:T '確認を記録しても、まだファイルは変更されません。'}" VerticalAlignment="Center" Style="{StaticResource VisualSupportingText}"/>
+    <StackPanel Grid.Column="1" Orientation="Horizontal">
+     <Button x:Name="AcknowledgementAction" Content="{l:T '確認内容を記録'}" Command="{Binding AcknowledgeOperationDryRunCommand}">
+      <Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding OperationBatchMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding OperationNeedsPreflightRetry}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+     </Button>
+     <Button Content="{l:T '全対象の確認内容を記録'}" Command="{Binding AcknowledgeControlledBatchDryRunCommand}">
+      <Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding OperationBatchMode}" Value="True"/><Condition Binding="{Binding OperationNeedsPreflightRetry}" Value="False"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers></Style></Button.Style>
+     </Button>
+     <Button Content="{l:T '実行前確認をやり直す'}" Command="{Binding CreateOperationDryRunCommand}">
+      <Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding OperationBatchMode}" Value="False"/><Condition Binding="{Binding OperationNeedsPreflightRetry}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers></Style></Button.Style>
+     </Button>
+     <Button Content="{l:T '全対象の実行前確認をやり直す'}" Command="{Binding CreateControlledBatchDryRunCommand}">
+      <Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding OperationBatchMode}" Value="True"/><Condition Binding="{Binding OperationNeedsPreflightRetry}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger></Style.Triggers></Style></Button.Style>
+     </Button>
+    </StackPanel>
+   </Grid>
+  </Border>
+  <Border DockPanel.Dock="Bottom" KeyboardNavigation.TabIndex="2" Style="{StaticResource VisualMainSurface}" Padding="12" Margin="18,0,18,8" MaxWidth="1360" HorizontalAlignment="Stretch" Visibility="{Binding OperationShowExecute, Converter={StaticResource Visible}}">
+   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock Text="{Binding OperationConsequence}" VerticalAlignment="Center" Foreground="#FFD59B" FontWeight="SemiBold"/>
+    <StackPanel Grid.Column="1" HorizontalAlignment="Right"><StackPanel Style="{StaticResource Single}" Orientation="Horizontal">
+      <Button Content="{l:T '移動／名前変更を実行'}" Command="{Binding ExecuteProductionSameVolumeOperationCommand}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CurrentOperationDryRun.Plan.ProductionSameVolumeCapability}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+      <Button Content="{l:T '別ドライブへの移動を実行'}" Command="{Binding ExecuteProductionCrossVolumeMoveOperationCommand}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CurrentOperationDryRun.Plan.ProductionCrossVolumeMoveCapability}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+      <Button Content="{l:T 'ごみ箱へ移動を実行'}" Command="{Binding ExecuteProductionRecycleOperationCommand}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource VisualPrimaryButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding OperationPlanningType}" Value="Recycle"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+      <Button x:Name="PermanentExecute" IsDefault="False" Content="{l:T '完全に削除を実行 — 元に戻せません'}" Style="{StaticResource VisualDestructiveButton}" Command="{Binding ExecuteProductionPermanentDeleteOperationCommand}" Visibility="{Binding OperationIsPermanentDelete, Converter={StaticResource Visible}}" AutomationProperties.Name="{l:T 'この1件を完全に削除。元に戻せません'}"/>
+     </StackPanel><StackPanel Style="{StaticResource Batch}"><Button Content="{l:T '全対象を順番に実行'}" Style="{StaticResource VisualPrimaryButton}" Command="{Binding ExecuteControlledBatchCommand}"/></StackPanel></StackPanel>
+   </Grid>
+  </Border>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch" KeyboardNavigation.TabIndex="1" IsTabStop="False">
+   <StackPanel MaxWidth="1360" Margin="18,4,18,18" HorizontalAlignment="Stretch">
+    <Border x:Name="CurrentStepSurface" Style="{StaticResource VisualMainSurface}" Visibility="{Binding OperationExpandTargetEditor, Converter={StaticResource Visible}}">
+     <StackPanel IsEnabled="{Binding OperationEditorsEnabled}">
+      <TextBlock x:Name="CurrentStepFocusTarget" Focusable="True" Text="{Binding OperationCurrentStepLabel}" Foreground="#9FC8F2" FontSize="12" AutomationProperties.AutomationId="OperationProgressStep" AutomationProperties.LiveSetting="Polite"/>
+      <TextBlock Text="{l:T '操作対象と操作を選択してください'}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,2"/>
+      <TextBlock Text="{l:T '整理したいファイルと、実行する操作を確認します。まだファイルは変更しません。'}" Style="{StaticResource VisualSupportingText}"/>
+      <Grid Margin="0,18,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="0.95*"/></Grid.ColumnDefinitions>
+       <StackPanel Grid.Column="0" Margin="0,0,12,0">
+        <StackPanel Style="{StaticResource Single}">
+         <TextBlock Text="{l:T '操作対象'}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Border Style="{StaticResource VisualContextCard}" Padding="10"><TextBlock Text="{Binding OperationTargetLabel}" TextTrimming="CharacterEllipsis" AutomationProperties.Name="{Binding OperationTargetLabel}"/></Border>
+          <Button Grid.Column="1" Content="{l:T '選択…'}" Margin="8,0,0,0" Click="OpenTargetSelector" AutomationProperties.Name="{l:T '単一ファイルの操作対象を選択'}"/>
+         </Grid>
+         <TextBlock Text="{l:T '操作の種類'}" FontWeight="SemiBold" Margin="0,12,0,6"/>
+         <ComboBox x:Name="SingleOperationSelector" ItemsSource="{Binding SingleOperationChoices}" DisplayMemberPath="Label" SelectedValuePath="Type" SelectedValue="{Binding OperationPlanningType}" MinHeight="34" AutomationProperties.Name="{l:T '単一ファイルの操作。初期状態は未選択'}"/>
+         <StackPanel Visibility="{Binding OperationNeedsDestination, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '変更先の完全パス（移動先／新しいファイル名）'}" FontWeight="SemiBold" Margin="0,14,0,6"/><TextBox Text="{Binding OperationDestinationPath, UpdateSourceTrigger=LostFocus}" MinHeight="32" AutomationProperties.Name="{l:T '移動先または新しいファイル名の完全パス'}"/></StackPanel>
+         <Expander x:Name="TargetSelector" Header="{l:T '操作対象の候補を検索'}" IsExpanded="False" Expanded="OnTargetSelectorExpanded" Collapsed="OnTargetSelectorClosed" Margin="0,8,0,0">
+          <StackPanel Margin="8"><TextBlock Text="{l:T '最大30件を表示します。見つからない場合は検索条件を絞るか、ライブラリから選択してください。対象範囲と一括対象は変更しません。'}" Style="{StaticResource VisualSupportingText}"/>
+           <TextBox x:Name="TargetSearch" Text="{Binding OperationTargetSearch, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T '整理対象のファイル名検索'}" Margin="0,8,0,2"/>
+           <WrapPanel><Button Content="{l:T 'ライブラリから選択'}" Click="ReturnToLibrary" AutomationProperties.Name="{l:T 'ライブラリで選択して、ファイルを整理から明示的に渡す'}"/><Button Content="{l:T '対象ファイルを検索'}" Command="{Binding FindOperationTargetCommand}"/></WrapPanel>
+           <ListBox ItemsSource="{Binding OperationTargetCandidates}" SelectedItem="{Binding OperationTargetCandidate}" MaxHeight="130" AutomationProperties.Name="{l:T '単一操作の対象候補'}"><ListBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding FileName}"/><TextBlock Text="{Binding Path}" FontSize="11"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
+           <Button Content="{l:T 'このファイルを対象にする'}" Command="{Binding ApplyOperationTargetCommand}" HorizontalAlignment="Left"/>
+          </StackPanel>
+         </Expander>
+         <TextBlock Text="{l:T '完全に削除 — 元に戻せません。ごみ箱は使用しません。'}" Foreground="#FFD59B" FontWeight="SemiBold" Margin="0,10,0,0" Visibility="{Binding OperationIsPermanentDelete, Converter={StaticResource Visible}}"/>
+        </StackPanel>
+        <StackPanel Style="{StaticResource Batch}">
+         <TextBlock Text="{l:T '最大25件。明示的に追加した対象だけを操作します。完全削除は一括操作対象外です。'}" Style="{StaticResource VisualSupportingText}"/>
+         <ComboBox ItemsSource="{Binding BatchOperationChoices}" DisplayMemberPath="Label" SelectedValuePath="Type" SelectedValue="{Binding ControlledBatchType}" MinHeight="34" Margin="0,12,0,0" AutomationProperties.Name="{l:T '一括操作の種類。移動・名前変更・ごみ箱のみ'}"/>
+         <StackPanel Visibility="{Binding BatchNeedsDestination, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '変更先フォルダー（各ファイル名を維持）'}" Margin="0,12,0,5"/><TextBox Text="{Binding ControlledBatchDestinationDirectory, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="{l:T '一括操作の変更先フォルダー'}"/></StackPanel>
+         <WrapPanel Margin="0,8,0,0"><Button Content="{l:T 'Libraryの選択行を追加'}" Command="{Binding AddSelectedToControlledBatchCommand}"/><Button Content="{l:T '選択項目を外す'}" Command="{Binding RemoveSelectedFromControlledBatchCommand}"/><Button Content="{l:T '対象リストをクリア'}" Command="{Binding ClearControlledBatchCommand}"/></WrapPanel>
+        </StackPanel>
+       </StackPanel>
+       <StackPanel Grid.Column="1">
+        <Border Style="{StaticResource VisualEmptyState}" Visibility="{Binding OperationShowTargetEmpty, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '操作対象を選択してください'}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#B9C9DB"/></Border>
+        <Border Style="{StaticResource VisualContextCard}" Visibility="{Binding OperationHasTarget, Converter={StaticResource Visible}}">
+         <StackPanel><TextBlock Text="{l:T '選択中のファイル'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,9"/>
+          <Grid Height="120" Background="#0C1927"><TextBlock Text="{l:T '画像はまだありません'}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#AFC0D0"/><Image Source="{Binding OperationTargetVisual.ThumbnailRelativePath, Converter={StaticResource TargetImage}}" Stretch="Uniform" AutomationProperties.Name="{l:T '操作対象のサムネイル'}"/></Grid>
+          <TextBlock Text="{Binding OperationTarget.Media.FileName}" FontWeight="SemiBold" FontSize="16" Margin="0,10,0,4"/>
+          <TextBlock Text="{Binding OperationTargetFacts}" Style="{StaticResource VisualSupportingText}"/>
+          <TextBlock Text="{Binding OperationTarget.Media.Path}" Style="{StaticResource VisualSupportingText}" Margin="0,8,0,4"/>
+          <TextBlock Text="{Binding OperationTargetAvailability}" Foreground="#BFE9D7"/>
+         </StackPanel>
+        </Border>
+        <Border Style="{StaticResource VisualContextCard}" Margin="0,9,0,0" Visibility="{Binding OperationBatchMode, Converter={StaticResource Visible}}"><TextBlock Text="{Binding OperationTargetLabel}" FontWeight="SemiBold"/></Border>
+       </StackPanel>
+      </Grid>
+      <Border Style="{StaticResource VisualCompactAlert}" Visibility="{Binding OperationHasSafetyPreparation, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '対象や操作を変更すると、以前の安全確認は無効になります。'}" Foreground="#F7D58B"/></Border>
+      <TextBlock Text="{l:T '操作未選択・対象利用不能・必要な変更先が未入力の場合は進めません。'}" Style="{StaticResource VisualSupportingText}" Margin="0,10,0,0"/>
+     </StackPanel>
+    </Border>
+    <Border Style="{StaticResource VisualMainSurface}" Visibility="{Binding OperationShowPreflight, Converter={StaticResource Visible}}">
+     <StackPanel>
+      <TextBlock x:Name="PreflightStepLabel" Text="{Binding OperationCurrentStepLabel}" Foreground="#9FC8F2" FontSize="12"/>
+      <TextBlock Text="{l:T '実行前確認'}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,5"/>
+      <TextBlock Text="{Binding OperationTargetLabel}" FontWeight="SemiBold"/><TextBlock Text="{Binding OperationCurrentLabel}" Style="{StaticResource VisualSupportingText}"/>
+      <Border Style="{StaticResource VisualContextCard}" Margin="0,14,0,0"><StackPanel><TextBlock Text="{Binding OperationPreflightMessage}" FontWeight="SemiBold" AutomationProperties.AutomationId="OperationProgressSafety" AutomationProperties.LiveSetting="Polite"/><TextBlock Text="{Binding OperationCheckFacts}" Margin="0,8,0,0"/></StackPanel></Border>
+      <Border Style="{StaticResource VisualCompactAlert}" Margin="0,9,0,0" Visibility="{Binding OperationNeedsPreflightRetry, Converter={StaticResource Visible}}"><TextBlock Text="{Binding OperationPreflightMessage}" Foreground="#F7D58B"/></Border>
+      <StackPanel Visibility="{Binding OperationNeedsPreflightRetry, Converter={StaticResource Visible}}"><StackPanel Style="{StaticResource Single}"><Button x:Name="RetryPreflight" Content="{l:T '実行前確認をやり直す'}" Command="{Binding CreateOperationDryRunCommand}" HorizontalAlignment="Left"/></StackPanel><StackPanel Style="{StaticResource Batch}"><Button Content="{l:T '全対象の実行前確認をやり直す'}" Command="{Binding CreateControlledBatchDryRunCommand}" HorizontalAlignment="Left"/></StackPanel></StackPanel>
+      <StackPanel Style="{StaticResource Single}"><CheckBox Style="{StaticResource AcknowledgementControl}" IsChecked="{Binding OperationProgressAcknowledgement}"><CheckBox.Content><TextBlock Text="{l:T '対象・操作・変更先・警告と回復可能性を確認しました（まだファイルは変更しません）'}"/></CheckBox.Content></CheckBox></StackPanel>
+      <StackPanel Style="{StaticResource Batch}"><CheckBox Style="{StaticResource AcknowledgementControl}" IsChecked="{Binding BatchProgressAcknowledgement}"><CheckBox.Content><TextBlock Text="{l:T '全対象の実行前確認・変更先・停止状態を確認しました'}"/></CheckBox.Content></CheckBox></StackPanel>
+     </StackPanel>
+    </Border>
+    <Border Style="{StaticResource VisualMainSurface}" Visibility="{Binding OperationShowConfirmation, Converter={StaticResource Visible}}">
+     <StackPanel>
+      <TextBlock Text="{Binding OperationCurrentStepLabel}" Foreground="#9FC8F2" FontSize="12"/>
+      <Grid Margin="0,4,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <TextBlock x:Name="FinalConfirmationFocusTarget" Focusable="True" Text="{l:T '最終確認 — 実行する内容'}" FontSize="22" FontWeight="SemiBold" AutomationProperties.Name="{l:T '最終確認の対象・操作・変更先と警告'}"/>
+       <TextBlock Grid.Column="1" Text="{Binding OperationTargetLabel}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0" MaxWidth="260" TextTrimming="CharacterEllipsis"/>
+      </Grid>
+      <Border Style="{StaticResource VisualContextCard}" Padding="10"><TextBlock Text="{Binding OperationConfirmationSummary}"/></Border>
+      <Border Style="{StaticResource VisualCompactAlert}" Margin="0,8,0,4" Padding="7"><TextBlock Text="{Binding OperationConsequence}" Foreground="#FFD59B" FontWeight="SemiBold"/></Border>
+      <StackPanel Style="{StaticResource Single}"><CheckBox IsEnabled="{Binding OperationPlanningFinalConfirmationEnabled}" IsChecked="{Binding OperationPlanningFinalConfirmation}" AutomationProperties.Name="{l:T '表示中の操作の独立した最終確認'}"><CheckBox.Content><TextBlock Text="{Binding OperationFinalConfirmationText}"/></CheckBox.Content></CheckBox><Button Content="{l:T '最終確認を記録'}" Style="{StaticResource VisualPrimaryButton}" Command="{Binding ConfirmOperationFinalExecutionCommand}" HorizontalAlignment="Right"/></StackPanel>
+      <StackPanel Style="{StaticResource Batch}"><CheckBox IsChecked="{Binding ControlledBatchFinalConfirmation}" IsEnabled="{Binding ControlledBatchFinalConfirmationEnabled}"><CheckBox.Content><TextBlock Text="{l:T '固定された全対象・変更先・警告・逐次実行と、完了項目を元に戻さないことを最終確認しました'}"/></CheckBox.Content></CheckBox><Button Content="{l:T '全対象の最終確認を記録'}" Style="{StaticResource VisualPrimaryButton}" Command="{Binding ConfirmControlledBatchFinalExecutionCommand}" HorizontalAlignment="Right"/></StackPanel>
+      <TextBlock Text="{l:T '実行直前にも再検証します。状態が変わった場合、古い確認は再利用できません。'}" Style="{StaticResource VisualSupportingText}" Margin="0,9,0,0"/>
+     </StackPanel>
+    </Border>
+    <Border Style="{StaticResource VisualMainSurface}" Visibility="{Binding OperationShowResult, Converter={StaticResource Visible}}">
+     <StackPanel><TextBlock Text="{Binding OperationCurrentStepLabel}" Foreground="#9FC8F2" FontSize="12"/><TextBlock Text="{l:T '結果'}" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,12"/><TextBlock Text="{Binding OperationTargetLabel}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+      <Border Style="{StaticResource VisualContextCard}"><StackPanel><StackPanel Style="{StaticResource Single}"><TextBlock Text="{Binding OperationResult.Summary}"/><Button Content="{l:T 'ライブラリで表示'}" Command="{Binding ShowOperationResultInLibraryCommand}" Visibility="{Binding OperationResult.CanShowLibrary, Converter={StaticResource Visible}}" HorizontalAlignment="Left"/></StackPanel><StackPanel Style="{StaticResource Batch}"><TextBlock Text="{Binding ControlledBatchSafety.ResultSummary}"/></StackPanel></StackPanel></Border>
+     </StackPanel>
+    </Border>
+    <Border Style="{StaticResource VisualContextCard}" Margin="0,10,0,0" Visibility="{Binding OperationBatchMode, Converter={StaticResource Visible}}">
+     <StackPanel><TextBlock Text="{l:T '一括操作の全対象'}" FontWeight="SemiBold"/><ListBox ItemsSource="{Binding ControlledBatchReviewItems}" SelectedItem="{Binding ControlledBatchSelectedItem}" MaxHeight="150" AutomationProperties.Name="{l:T '一括操作の全対象と要確認状態'}"><ListBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Target}" FontWeight="SemiBold"/><TextBlock Text="{Binding Source}" FontSize="11"/><TextBlock Text="{Binding Destination}" FontSize="11"/><TextBlock Text="{Binding StateLabel}"/><TextBlock Text="{Binding AttentionLabel}" Foreground="#F7D58B"/><TextBlock Text="{Binding BlockingReason}" Foreground="#F7D58B"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Text="{Binding ControlledBatchSafety.CancellationConsequence}" Foreground="#F7D58B"/><Button Content="{l:T '中止を要求 — 完了項目は戻りません'}" Command="{Binding CancelControlledBatchCommand}" HorizontalAlignment="Left"/></StackPanel>
+    </Border>
+    <Border Style="{StaticResource VisualCompactAlert}" Margin="0,10,0,0" Visibility="{Binding OperationIsPermanentDelete, Converter={StaticResource Visible}}"><TextBlock Text="{l:T '完全に削除 — 元に戻せません。ごみ箱を使用しません。'}" Foreground="#FFD59B"/></Border>
+    <TextBlock Text="{Binding OperationSafetyWarning}" Foreground="#F7D58B" Margin="4,10,4,0" Visibility="{Binding OperationHasSafetyPreparation, Converter={StaticResource Visible}}"/>
+    <TextBlock Text="{Binding OperationLocalMessage}" Margin="4,8,4,0" AutomationProperties.LiveSetting="Polite"/>
+    <Expander local:DeveloperDiagnostics.Section="True" Header="{l:T '技術情報・監査記録'}" IsExpanded="False" Margin="0,12">
+     <StackPanel Margin="8"><StackPanel Style="{StaticResource Single}"><TextBlock Text="{Binding OperationPlanningStatus}"/><TextBlock Text="{Binding OperationPlanningSummary}"/><TextBlock Text="{Binding OperationPlanningValidationState}"/><TextBlock Text="{Binding OperationPlanningWarning}"/><TextBlock Text="{Binding OperationPlanningFullHashRequirement}"/><TextBlock Text="{Binding OperationPlanningPermanentDeleteSnapshot}"/><TextBlock Text="{Binding CurrentOperationDryRun.Plan.OperationId}"/><TextBlock Text="{Binding CurrentOperationDryRun.Plan.LastErrorMessage}"/>
+      <TextBlock Text="{Binding OperationPlanningSameVolumeState}"/><TextBlock Text="{Binding OperationPlanningCrossVolumeState}"/><TextBlock Text="{Binding OperationPlanningRecycleState}"/><TextBlock Text="{Binding OperationPlanningRecycleSnapshot}"/><TextBlock Text="{Binding OperationPlanningRecycleWarning}"/><TextBlock Text="{Binding OperationPlanningPermanentDeleteState}"/><TextBlock Text="{Binding OperationPlanningPermanentDeleteWarning}"/><TextBlock Text="{Binding OperationPlanningCrossVolumeProgress}"/><TextBlock Text="{Binding OperationPlanningTemporaryArtifactState}"/><TextBlock Text="{Binding OperationPlanningSourceRemovalWarning}"/><TextBlock Text="{Binding OperationPlanningFinalConfirmationState}"/><TextBlock Text="{Binding OperationPlanningRecoverability}"/>
+      <TextBlock Text="{Binding CurrentOperationDryRun.Plan.SourceFullSha256, StringFormat=SHA-256: {0}}"/><TextBlock Text="{Binding CurrentOperationDryRun.Plan.SourceQuickFingerprint, StringFormat=Fingerprint: {0}}"/><TextBlock Text="{Binding CurrentOperationDryRun.Plan.SourceVolumeIdentity, StringFormat=Volume identity: {0}}"/><TextBlock Text="{Binding CurrentOperationDryRun.Plan.SourceFileIdentity, StringFormat=File identity: {0}}"/>
+     </StackPanel><StackPanel Style="{StaticResource Batch}"><TextBlock Text="{Binding ControlledBatchStatus}"/><TextBlock Text="{Binding ControlledBatchItemStateSummary}"/><TextBlock Text="{Binding ControlledBatchSelectedItemAudit}"/></StackPanel></StackPanel>
+    </Expander>
+   </StackPanel>
+  </ScrollViewer>
+ </DockPanel>
+</UserControl>

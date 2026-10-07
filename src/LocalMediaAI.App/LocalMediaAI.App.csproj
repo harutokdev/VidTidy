@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LocalMediaAI.Core\LocalMediaAI.Core.csproj" />
+    <ProjectReference Include="..\LocalMediaAI.Infrastructure\LocalMediaAI.Infrastructure.csproj" />
+    <ProjectReference Include="..\LocalMediaAI.WorkerProtocol\LocalMediaAI.WorkerProtocol.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Content Include="..\..\runtime\ffmpeg\ffmpeg.exe" Link="runtime\ffmpeg\ffmpeg.exe" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\runtime\ffmpeg\ffprobe.exe" Link="runtime\ffmpeg\ffprobe.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

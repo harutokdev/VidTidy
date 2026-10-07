@@ -1,0 +1,1414 @@
+<title>Local Media AI 英語表示 試作 v18</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#12161C; --surface:#1A2029; --side:#161B22; --raised:#222A35; --hover:#2A3441; --line:#2E3846; --line2:#3B4757;
+  --text:#E7EDF4; --muted:#9AA6B5; --faint:#6F7B8B;
+  --accent:#3C86DA; --accent-hi:#5A9CE6; --accent-ink:#fff;
+  --keep:#3FAE7A; --keep-bg:rgba(63,174,122,.14);
+  --trash:#B7C3D3; --trash-bg:rgba(183,195,211,.12);
+  --sig-green:#3FAE7A; --sig-yellow:#E6C547; --sig-red:#E4625B;
+  --bin:#8E7BD0;
+  --warn:#E0A042; --danger:#E4625B; --folder:#E2B356;
+  --radius:6px; --sidew:250px;
+  --font:"Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.55;padding-inline:16px;padding-block:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-hi);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+.proto{max-width:1340px;margin:0 auto 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12px}
+.proto b{color:var(--text);font-weight:500}
+.proto button{background:transparent;border:1px dashed var(--line2);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.proto button[aria-pressed="true"]{border-style:solid;border-color:var(--accent);color:var(--text)}
+
+.win{max-width:1340px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;height:840px;position:relative}
+.titlebar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:#141920}
+.brand{font-weight:700;display:flex;align-items:center;gap:8px}
+.brand i{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--keep));display:inline-block}
+.titlebar .sp{flex:1}
+.tbtn{background:transparent;border:1px solid transparent;border-radius:var(--radius);padding:5px 10px;color:var(--muted)}
+.tbtn:hover{background:var(--hover);color:var(--text)}
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--raised);border:1px solid var(--line2);border-radius:8px;min-width:240px;padding:6px;z-index:30;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:5px}
+.menu button:hover{background:var(--hover)}
+.menu button:disabled{opacity:.45;cursor:default}
+.menu small{display:block;color:var(--faint);font-size:11px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+.menu .danger{color:#F08A84}
+
+/* layout with draggable splitter */
+.body{flex:1;display:grid;grid-template-columns:var(--sidew) 6px minmax(0,1fr);min-height:0}
+.side{background:var(--side);display:flex;flex-direction:column;min-height:0;overflow:auto}
+.splitter{background:var(--line);cursor:col-resize;position:relative;touch-action:none}
+.splitter::after{content:"";position:absolute;top:50%;left:1px;width:4px;height:36px;margin-top:-18px;border-radius:2px;background:var(--line2)}
+.splitter:hover,.splitter:focus-visible,.splitter.drag{background:var(--accent)}
+.side-sec{padding:12px 12px 6px}
+.side-h{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.side-h h2{font-size:12px;font-weight:500;color:var(--muted);margin:0;letter-spacing:.04em}
+.side-h .sp{flex:1}
+.add{background:transparent;border:1px solid var(--line2);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--text)}
+.add:hover{background:var(--hover)}
+.fold{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 4px 7px 8px;border-radius:6px;position:relative}
+.fold:hover{background:rgba(255,255,255,.03)}
+.fico{width:20px;height:15px;border-radius:2px;background:var(--folder);position:relative;margin-top:6px}
+.fico::before{content:"";position:absolute;left:0;top:-4px;width:9px;height:5px;border-radius:2px 2px 0 0;background:var(--folder)}
+.fname{display:flex;align-items:center;gap:6px;min-width:0}
+.fname span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsub{font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fstate{font-size:11px;color:var(--muted)}
+.fstate.scan{color:var(--accent-hi)}
+.fbar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:3px}
+.fbar i{display:block;height:100%;background:var(--accent)}
+.rank{font-size:10px;color:var(--folder);border:1px solid rgba(226,179,86,.5);border-radius:10px;padding:0 6px;flex:none;white-space:nowrap}
+.kebab{background:none;border:0;color:var(--muted);width:26px;height:26px;border-radius:5px}
+.kebab:hover{background:var(--raised);color:var(--text)}
+.fmenu{position:fixed;right:auto;z-index:50;max-width:calc(100vw - 16px)}
+.drives{display:grid;gap:12px;padding:4px 4px 8px}
+.drv{display:grid;gap:4px;font-size:12px}
+.drv .top{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
+.drv .top b{color:var(--text);font-weight:500}
+.drv .alt{display:flex;justify-content:space-between;gap:8px;color:var(--faint);font-size:11px}
+.drv .alt span:last-child{color:var(--bin)}
+.dbar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;display:flex}
+.dbar i{display:block;height:100%;background:#5B6B80}
+.dbar s{display:block;height:100%;background:repeating-linear-gradient(135deg,var(--bin) 0 3px,rgba(142,123,208,.35) 3px 6px)}
+.dbar em{display:block;height:100%;background:repeating-linear-gradient(135deg,var(--keep) 0 3px,rgba(63,174,122,.3) 3px 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--faint);padding:0 4px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:7px;border-radius:2px;display:inline-block}
+.side-foot{margin-top:auto;padding:10px 12px;border-top:1px solid var(--line);display:grid;gap:6px}
+.sidelink{background:none;border:0;text-align:left;padding:6px 8px;border-radius:5px;color:var(--muted);display:flex;justify-content:space-between}
+.sidelink:hover{background:var(--hover);color:var(--text)}
+
+.work{display:flex;flex-direction:column;min-height:0}
+.scanstrip{display:flex;align-items:center;gap:10px;padding:7px 18px;border-bottom:1px solid var(--line);background:#16202C;font-size:12px;color:var(--muted)}
+.scanstrip b{color:var(--text);font-weight:500}
+.scanstrip .bar{flex:0 0 140px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent-hi);flex:none;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.next{display:flex;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(60,134,218,.12),transparent 60%)}
+.next .stats{font-size:12px;color:var(--muted);margin-bottom:2px}
+.next .stats b{color:var(--text);font-weight:500}
+.next .t{font-weight:700;font-size:16px;text-wrap:balance}
+.next .d{color:var(--muted);font-size:13px}
+.next .grow{flex:1;min-width:0}
+.rulebox{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px;background:rgba(63,174,122,.08);border:1px solid rgba(63,174,122,.35);border-radius:6px;padding:6px 10px}
+.rulebox b{font-weight:500;color:var(--text)}
+.rulebox .sep{color:var(--faint)}
+.btn{border:1px solid var(--line2);background:var(--raised);border-radius:var(--radius);padding:8px 14px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.btn.primary:hover{background:var(--accent-hi)}
+.btn.ghost{background:transparent}
+.btn.small{padding:4px 10px;font-size:12px}
+.btn.danger{border-color:rgba(228,98,91,.6);color:#F4A19C;background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{background:none;border:0;color:var(--accent-hi);padding:0;font-size:12px}
+.link:hover{text-decoration:underline}
+
+.main{flex:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:0}
+.list{border-right:1px solid var(--line);overflow:auto}
+.detail{overflow:auto;padding:16px 18px}
+.sect-h{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#171D25;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line)}
+.sect-h .caret{background:none;border:0;color:var(--muted);width:22px}
+.sect-h .name{font-weight:700;display:flex;align-items:center;gap:8px}
+.sect-h .meta{color:var(--muted);font-size:12px}
+.sect-h .sp{flex:1}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.pill.keep{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.pill.trash{border-color:transparent;background:var(--trash-bg);color:var(--trash)}
+.pill.info{border-color:transparent;background:rgba(60,134,218,.15);color:var(--accent-hi)}
+.pill.manual{border-color:rgba(90,156,230,.6);color:var(--accent-hi)}
+.same,.like,.chk{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-weight:700;font-size:12px;line-height:1;flex:none}
+.same{background:var(--sig-green);color:#0C1B13}
+.like{background:var(--sig-yellow);color:#15130A}
+.chk{background:var(--sig-red);color:#1D0B0A}
+.lg{width:22px;height:22px;font-size:14px}
+.group{border-bottom:1px solid var(--line);cursor:pointer}
+.group:hover{background:#1E2530}
+.group.sel{background:#1F2A38;box-shadow:inset 3px 0 0 var(--accent)}
+.group.queued{opacity:.55}
+.g-head{display:flex;align-items:center;gap:8px;padding:8px 14px 2px;font-size:12px;color:var(--muted)}
+.g-head .sp{flex:1}
+.row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 14px}
+.thumb{width:56px;height:32px;border-radius:4px;position:relative;overflow:hidden;flex:none}
+.thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.45))}
+.r-main{min-width:0}
+.r-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-path{font-size:12px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-facts{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.r-tag{margin-left:6px}
+
+.d-title{font-size:18px;font-weight:700;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.d-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+.choice{display:grid;gap:8px;margin-bottom:14px}
+.opt{border:1px solid var(--line2);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;cursor:pointer;background:var(--surface)}
+.opt.keep{border-color:var(--keep);background:var(--keep-bg)}
+.opt input{accent-color:var(--keep);width:16px;height:16px}
+.opt .row{padding:0}
+.why{font-size:12px;color:var(--keep);margin-top:2px}
+.note{border-left:3px solid var(--line2);padding:6px 10px;color:var(--muted);font-size:13px;margin:10px 0}
+.note.warn{border-color:var(--warn);color:#E9C58C}
+.note.ok{border-color:var(--keep)}
+.facts{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 14px}
+.facts th,.facts td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.facts th{color:var(--muted);font-weight:400;width:26%}
+.facts td.best{color:var(--keep);font-weight:700}
+.facts td.best::after{content:" ▲";font-size:10px}
+.frames{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px}
+.frame{display:grid;gap:3px}
+.frame .thumb,.player .thumb{width:100%;height:auto;aspect-ratio:16/9}
+.frame span{font-size:11px;color:var(--muted)}
+.player{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scrub{display:flex;gap:10px;align-items:center;margin:8px 0 14px}
+.scrub .track{flex:1;height:4px;background:var(--line2);border-radius:2px;position:relative}
+.scrub .track i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:2px}
+.h3{font-size:13px;font-weight:700;margin:14px 0 4px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:60px 20px}
+
+/* analysis waiting panel */
+.analysis{flex:1;overflow:auto;padding:24px 28px;display:grid;gap:18px;align-content:start;max-width:860px}
+.an-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.an-head h2{margin:0;font-size:22px}
+.an-eta{font-size:15px;color:var(--text)}
+.an-eta small{color:var(--muted);font-size:12px;margin-left:6px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.an-card{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:8px;background:#171D25}
+.an-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center}
+.stages{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+.stages span{padding:2px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--faint)}
+.stages span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.stages span.now{border-color:var(--accent);color:var(--text)}
+.current{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+.current b{color:var(--text);font-weight:500}
+.reassure{display:grid;gap:6px;font-size:13px;color:var(--muted);padding-left:12px;border-left:3px solid var(--line2)}
+
+.actionbar{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);background:#141920}
+.actionbar .sum{font-size:15px}
+.actionbar .sum b{font-size:18px}
+.actionbar .cap{color:var(--muted);font-size:12px}
+.actionbar .sp{flex:1}
+.meter{width:110px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+
+.onboard{flex:1;display:grid;place-items:center;padding:40px 20px}
+.drop{max-width:560px;width:100%;border:2px dashed var(--line2);border-radius:14px;padding:44px 28px;text-align:center;display:grid;gap:12px;justify-items:center}
+.drop h2{margin:0;font-size:22px;text-wrap:balance}
+.drop p{margin:0;color:var(--muted);max-width:44ch}
+.bigico{width:56px;height:42px;border-radius:6px;background:var(--folder);position:relative}
+.bigico::before{content:"";position:absolute;left:0;top:-8px;width:24px;height:10px;border-radius:4px 4px 0 0;background:var(--folder)}
+
+.scrim{position:absolute;inset:0;background:rgba(5,8,12,.6);z-index:40;display:flex}
+.drawer{margin-left:auto;width:min(780px,100%);background:var(--surface);border-left:1px solid var(--line2);display:flex;flex-direction:column;height:100%}
+.drawer-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.drawer-h .sp{flex:1}
+.drawer-b{flex:1;overflow:auto;padding:4px 0}
+.dsec{padding:14px 18px;border-bottom:1px solid var(--line)}
+.dsec h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.dsec h3 .sp{flex:1}
+.dest{display:grid;gap:8px}
+.dest label{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--line2);border-radius:8px;padding:10px;cursor:pointer}
+.dest label.on{border-color:var(--accent);background:rgba(60,134,218,.08)}
+.dest input{accent-color:var(--accent);margin-top:4px}
+.dest small{display:block;color:var(--muted);font-size:12px}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:0}
+.qrow .row{padding-left:0}
+.hist{width:100%;border-collapse:collapse;font-size:13px}
+.hist th,.hist td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+.hist th{color:var(--muted);font-weight:400;font-size:12px}
+.files .row{border-bottom:1px solid var(--line)}
+.filter{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);background:#18202A}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--raised);border:1px solid var(--line2);border-radius:20px;padding:2px 10px;color:var(--text);font-size:12px}
+.modal{margin:auto;width:min(780px,calc(100% - 32px));max-height:calc(100% - 40px);background:var(--surface);border:1px solid var(--line2);border-radius:12px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.m-h{padding:16px 20px 10px;border-bottom:1px solid var(--line)}
+.m-h h2{margin:0 0 8px;font-size:18px;display:flex;align-items:center;gap:8px}
+.m-h p{margin:0;color:var(--muted);font-size:13px}
+.wsteps{display:flex;gap:6px;flex-wrap:wrap}
+.wsteps span{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--muted)}
+.wsteps span.on{border-color:var(--accent);color:var(--text);background:rgba(60,134,218,.15)}
+.wsteps span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.m-b{padding:14px 20px;overflow:auto}
+.m-f{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.m-f .sp{flex:1}
+.wgroup{border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+.wgroup-h{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.wgroup-h .sp{flex:1}
+.wrow{display:grid;grid-template-columns:24px 64px minmax(0,1fr);align-items:center;gap:6px;padding-right:10px}
+.wrow .row{padding:6px 0}
+.wrow input{accent-color:var(--accent);width:16px;height:16px;justify-self:center}
+.wrow .role{font-size:11px}
+.progress-list .row{border-bottom:1px solid var(--line)}
+.bigstat{font-size:40px;font-weight:700;line-height:1.1}
+.toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:8px;padding:8px 14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90%}
+.form{display:grid;gap:14px}
+.form label,.form .fld{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+.form input[type=text],.form select{background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:8px 10px;color:var(--text);font:inherit}
+.form fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 14px 14px;margin:0;display:grid;gap:10px}
+.form legend{padding:0 6px;color:var(--text);font-weight:500}
+.form .hint{font-size:12px;color:var(--faint)}
+.order{display:grid;gap:6px}
+.order .it{display:grid;grid-template-columns:18px 22px 20px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:6px 8px;color:var(--text)}
+.order .it small{color:var(--faint);display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order .mv{display:flex;gap:4px}
+.order .mv button{width:28px;height:26px;border-radius:5px;border:1px solid var(--line2);background:var(--surface)}
+.order .mv button:disabled{opacity:.3}
+.ret{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:center}
+.retc{display:flex;gap:6px;align-items:center}
+.retc select{padding:6px 8px}
+.unit{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:6px;background:var(--bg);overflow:hidden}
+.unit input{width:64px;border:0!important;border-radius:0!important;background:transparent!important;text-align:right;padding:6px 6px!important}
+.unit span{padding:0 10px 0 2px;color:var(--muted);font-size:13px}
+.unit.off{opacity:.4}
+.grip{cursor:grab;color:var(--faint);font-size:14px;line-height:1;user-select:none;text-align:center}
+.dnd .it[draggable=true]{cursor:grab}
+.dnd .it.dragging,.fold.dragging{opacity:.4}
+.dnd .it.over-top,.fold.over-top{box-shadow:inset 0 3px 0 var(--accent)}
+.dnd .it.over-bottom,.fold.over-bottom{box-shadow:inset 0 -3px 0 var(--accent)}
+.fold[draggable=true]{cursor:grab}
+.checkline{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint);padding:2px 8px 6px}
+.checkline .sp{flex:1}
+.switch{display:flex;gap:10px;align-items:flex-start;color:var(--text)}
+.switch input{margin-top:4px}
+.switch small{display:block;color:var(--faint);font-size:12px}
+.fstate.off{color:var(--danger)}
+.optw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;align-items:center}
+.keys{font-size:11px;color:var(--faint);margin-top:12px}
+.plabel{position:absolute;left:6px;top:4px;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);padding:0 5px;border-radius:3px}
+.sumt{width:100%;border-collapse:collapse;font-size:13px}
+.sumt th,.sumt td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.sumt th{color:var(--muted);font-weight:400;font-size:12px}
+.sumrow{cursor:pointer}.sumrow:hover{background:var(--hover)}
+.vbox{aspect-ratio:16/9;display:grid;place-items:center;text-align:center;background:#0E1217;border:1px dashed var(--line2);border-radius:6px;padding:20px}
+.vbox p{color:var(--muted);font-size:13px;max-width:48ch;margin:8px auto}
+.vaultf{display:grid;gap:6px;border:1px solid var(--line2);border-radius:8px;padding:10px}
+.tin{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;color:var(--text);font:inherit}
+.warnlink{color:#E9C58C!important}
+.fsum{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fsum-h,.fsum-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:center;padding:8px 12px}
+.fsum-h{font-size:12px;color:var(--muted);background:#171D25;border-bottom:1px solid var(--line)}
+.fsum-r{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--text)}
+.fsum-r:last-child{border-bottom:0}
+.fsum-r:hover{background:var(--hover)}
+.fsum-r.on{background:rgba(60,134,218,.12);box-shadow:inset 3px 0 0 var(--accent)}
+.fsum-n{display:flex;gap:8px;align-items:center;min-width:0}
+.fsum-n small{display:block;font-size:11px;color:var(--faint)}
+.fsum-c{display:grid;gap:3px;font-size:13px}
+.hbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;display:block}
+.hbar i{display:block;height:100%}
+.agrps{display:grid;gap:8px}
+.agrp{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.agrp-k{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;background:rgba(63,174,122,.06)}
+.agrp-t{display:grid;gap:4px;padding:6px 10px 8px 76px;border-top:1px solid var(--line)}
+.fsum-h.pat,.fsum-r.pat{grid-template-columns:minmax(0,1.1fr) 18px minmax(0,1.6fr) 70px minmax(0,1.2fr)}
+.fsum-r.tot{background:#171D25;cursor:default}
+.fsum-r.tot:hover{background:#171D25}
+.pf{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.pf small{display:block;font-size:11px;color:var(--faint)}
+.pts{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
+.arrow{color:var(--faint);text-align:center}
+.bigline{font-size:17px;margin:0 0 6px}
+.fcount{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fc-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 190px;gap:12px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line)}
+.fc-r:last-child{border-bottom:0}
+.fc-n{text-align:right;font-size:13px}
+.fc-n small{display:block;font-size:11px;color:var(--faint)}
+.fchip{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;background:var(--raised);border:1px solid var(--line2);color:var(--text);margin-right:2px}
+.devlist{margin:4px 0 0 26px;padding:0;font-size:12px;color:var(--faint);display:grid;gap:2px}
+.ret span{color:var(--text)}
+.ret small{display:block;color:var(--faint);font-size:11px}
+.pick{display:grid;gap:6px}
+.pick button{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;text-align:left;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.pick button[aria-pressed="true"]{border-color:var(--accent);background:rgba(60,134,218,.1)}
+.pick button:disabled{opacity:.5}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.cmp div{border:1px solid var(--line);border-radius:8px;padding:10px;background:#171D25}
+.cmp b{display:block;font-size:20px}
+.cmp span{font-size:12px;color:var(--muted)}
+
+/* v16 */
+.chg{position:relative}
+.chg summary{cursor:pointer;border:1px solid var(--accent);border-radius:20px;padding:3px 10px;color:var(--text);list-style:none}
+.chg ol{position:absolute;z-index:80;top:calc(100% + 6px);left:0;width:min(560px,90vw);margin:0;padding:12px 14px 12px 32px;background:var(--raised);border:1px solid var(--line2);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.45);display:grid;gap:6px;font-size:12px;color:var(--text)}
+.next{display:block}
+.next .top{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:8px}
+.next .top .sp{flex:1}
+.next .top .stats{margin:0}
+.steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px}
+.steps span{padding:2px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--faint);white-space:nowrap}
+.steps span.on{border-color:var(--accent);color:var(--text);background:rgba(60,134,218,.15)}
+.steps span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.steps i{color:var(--faint);font-style:normal}
+.next .go{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn.big{padding:10px 22px;font-size:15px}
+.btn.outline{border-color:var(--accent);color:var(--accent-hi);background:transparent}
+.btn.outline:hover{background:rgba(60,134,218,.12)}
+.group.one{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px}
+.group.single{cursor:default}
+.group.single:hover{background:transparent}
+.cnt{font-size:12px;color:var(--muted);margin-left:6px}
+.locs{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.loc{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:1px 8px 1px 2px;border-radius:20px;white-space:nowrap;background:var(--trash-bg);color:var(--trash)}
+.loc em{font-style:normal;font-size:10px;padding:0 6px;border-radius:20px;background:rgba(255,255,255,.08)}
+.loc.k{background:var(--keep-bg);color:var(--keep)}
+.r-right{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.r-right b{display:block;color:var(--text);font-size:13px;font-weight:500}
+.later{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:12px 14px;border:1px dashed var(--line2);border-radius:8px;font-size:13px;color:var(--muted)}
+.later b{color:var(--text);font-weight:500}
+.later .sp{flex:1}
+.later .link{white-space:nowrap}
+.add,.side-h h2{white-space:nowrap}
+/* v17 */
+.main>.listcol{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+.listcol>.list{flex:1;border-right:0}
+.listbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);background:#151B23}
+.listbar .sp{flex:1}
+.listbar select,.goalform select{background:var(--bg);border:1px solid var(--line2);border-radius:5px;color:var(--text);padding:3px 6px;font:inherit}
+.goaltxt{color:var(--text)}
+.goaltxt b{color:var(--keep);font-weight:500}
+.goalform{padding:8px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;background:#171D25}
+.goalform .hint{flex-basis:100%;font-size:11px;color:var(--faint)}
+.goal{margin:2px 14px 6px;padding-top:4px;border-top:2px dashed var(--keep);color:var(--keep);font-size:12px;text-align:center}
+.thumb.playing{background-size:260% 100%!important;animation:pv 3s linear infinite}
+.thumb.playing::before{content:"";position:absolute;left:0;bottom:0;height:2px;background:#fff;z-index:2;animation:pvbar 3s linear infinite}
+@keyframes pv{from{background-position:0 0}to{background-position:100% 0}}
+@keyframes pvbar{from{width:0}to{width:100%}}
+.crit{margin:6px 0 10px;padding-left:20px;font-size:13px;color:var(--muted);display:grid;gap:2px}
+.sect-h .name{white-space:nowrap}
+.sect-h .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.g-head span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hintbox{font-size:11px;color:var(--faint);padding:4px 8px}
+.qmark{width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font-size:11px;padding:0;line-height:1}
+.qmark:hover{color:var(--text);border-color:var(--muted)}
+.preview{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#171D25;display:grid;gap:8px}
+.pv-r{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,140px) 150px;gap:10px;align-items:center;font-size:13px;color:var(--text)}
+.pv-r small{display:block;font-size:11px}
+
+/* v18: first-start language window, styled like the app */
+.win.pre .titlebar{visibility:hidden}
+.langstage{flex:1;display:grid;place-items:center;align-content:center;gap:14px;padding:30px 16px;background:radial-gradient(circle at 50% 40%,#1B2430,var(--bg) 70%)}
+.langwin{width:min(460px,100%);background:var(--surface);border:1px solid var(--line2);border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.langbar{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:12px;background:#10141A;color:var(--text)}
+.langbar span:last-child{color:var(--muted);letter-spacing:4px}
+.langbody{padding:24px 28px}
+.langbody h2{margin:0;font-size:18px;font-weight:500;line-height:1.4}
+.langbody p{margin:10px 0 18px;color:var(--muted);font-size:12.5px}
+.lbtn{display:block;width:100%;margin:0 0 10px;padding:9px 12px;font-size:16px;text-align:center;background:var(--raised);border:1px solid var(--line2);border-radius:var(--radius);color:var(--text)}
+.lbtn:hover{background:var(--hover)}
+.lbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.lbtn.primary:hover{background:var(--accent-hi)}
+.lbtn small{display:block;font-size:11.5px;font-weight:400;opacity:.75}
+.langnote{max-width:560px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;text-align:center}
+.langnote button{background:transparent;border:1px dashed var(--line2);border-radius:20px;padding:2px 10px;font-size:12px;color:var(--muted)}
+.langnote button[aria-pressed="true"]{border-style:solid;border-color:var(--accent);color:var(--text)}
+@media (max-width:900px){
+  .body{grid-template-columns:1fr}
+  .splitter{display:none}
+  .side{border-bottom:1px solid var(--line)}
+  .main{grid-template-columns:1fr}
+  .list,.main>.listcol{border-right:0}
+  .detail{border-top:1px solid var(--line)}
+  .win{height:auto}
+  .next,.actionbar{flex-wrap:wrap}
+  .r-facts{display:none}
+  .cmp{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="proto" aria-label="試作用の操作">
+  <span><b>試作 v18（英語表示）</b>（データは架空の例です）状態を切り替える:</span>
+  <button data-state="lang">言語を選ぶ（初回）</button>
+  <button data-state="first">初めて起動</button>
+  <button data-state="scan">解析中</button>
+  <button data-state="found">重複あり</button>
+  <button data-state="clean">全部片付いた</button>
+  <button data-state="return">次に開いたとき</button>
+  <span style="margin-left:8px">操作:</span><button id="proto-offline" aria-pressed="false">外付けHDD（F:）を外す／つなぐ</button>
+  <details class="chg"><summary>v18で変えたところ</summary><ol>
+    <li>v17 の画面と動きをそのまま英語にしました（言葉はアプリの英語表示に合わせています）。</li>
+    <li>数が 1 のときは単数形にします（1 group・1 video・1 item・There is 1 group …）。0 と 2 以上は複数形のままです。「重複あり」で、よく似ている組を 1 つだけ整理リストに入れると確かめられます。</li>
+    <li>「言語を選ぶ（初回）」で、最初の起動で出る言語選択を見られます。ボタンをアプリと同じ暗い配色にし、Windows の言語に合う方を青くします（下の切り替えで試せます）。</li>
+    <li>設定に「Display language」を入れました（アプリには既にあり、再起動後に反映されます）。</li>
+  </ol></details>
+</div>
+
+<div class="win" id="win">
+  <div class="titlebar">
+    <div class="brand"><i aria-hidden="true"></i>Local Media AI</div>
+    <div class="sp"></div>
+    <button class="tbtn" id="open-files">All files</button>
+    <button class="tbtn" id="open-settings">Settings</button>
+    <div class="menu-wrap">
+      <button class="tbtn" id="more" aria-haspopup="true" aria-expanded="false" aria-label="More features">︙</button>
+      <div class="menu" id="menu" hidden>
+        <button data-toast="AI search">AI search<small>Search inside videos with words like “dog on a beach”</small></button>
+        <button data-toast="Suggested tags">Suggested tags<small>Review tags like “sea” and “dog” that the AI added to videos</small></button>
+        <button data-toast="Related videos">Related videos<small>Videos that are related but not duplicates</small></button>
+        <hr>
+        <button data-toast="Analysis details">Analysis details</button>
+      </div>
+    </div>
+  </div>
+  <div id="screen" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const H=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LIMIT=25, LIMIT_EXACT=100;
+/* English counts take the singular only for exactly 1, as the app's plural forms do. */
+const P=(n,one,many)=>`${typeof n==="number"?n.toLocaleString("en-US"):n} ${n===1?one:(many||one+"s")}`;
+const ARE=n=>n===1?"is":"are";
+const hues=[205,28,160,280,340,95,190,48,230,12,300,130];
+const thumb=(h,alt)=>`<div class="thumb" style="background:linear-gradient(135deg,hsl(${h} 45% 42%),hsl(${(h+40)%360} 40% 22%))" role="img" aria-label="Thumbnail of ${H(alt)}"></div>`;
+const gb=v=>v>=1?v.toFixed(1)+" GB":Math.round(v*1024)+" MB";
+const dur=s=>{s=Math.max(0,s);const m=Math.floor(s/60),x=Math.round(s%60);return m+":"+String(x).padStart(2,"0")};
+const mins=m=>m<1?"under a minute":m<60?`about ${P(Math.round(m),"minute")}`:`about ${Math.floor(m/60)} h ${Math.round(m%60)} min`;
+const facts=f=>`${f.res} · ${f.mbps} Mbps · ${dur(f.dur)} · ${gb(f.size)}`;
+const row=(f,extra="",noFacts=false)=>`<div class="row">${thumb(f.hue,f.name)}<div class="r-main"><div class="r-name">${H(f.name)}${extra}</div><div class="r-path">${H(f.dir)}</div></div>${noFacts?"<span></span>":`<div class="r-facts num">${facts(f)}</div>`}</div>`;
+const SAME='<span class="same" title="Identical" aria-label="Identical">=</span>';
+const LIKE='<span class="like" title="Very similar" aria-label="Very similar">≈</span>';
+const CHK='<span class="chk" title="Double-check" aria-label="Double-check">!</span>';
+const MARK=t=>t==="exact"?SAME:t==="similar"?LIKE:t==="single"?'<span class="pill" style="padding:0 6px">Single</span>':CHK;
+const TYPE=t=>t==="exact"?"Identical":t==="similar"?"Very similar":t==="single"?"File chosen individually":"Double-check";
+
+/* ---------- sample data: exactly 3 registered folders ---------- */
+const BASE_FOLDERS=[
+  {id:"A",name:"Sorted",path:"D:\\Videos\\Sorted",drive:"D:",subs:["Travel","Family"],files:1240},
+  {id:"B",name:"Downloads",path:"E:\\Downloads",drive:"E:",subs:["Videos","From phone"],files:2310},
+  {id:"C",name:"Backup 2023",path:"F:\\Backup\\2023",drive:"F:",subs:["Summer","Winter"],files:860}
+];
+const EXTRA_FOLDERS=[
+  {id:"D",name:"Videos",path:"C:\\Users\\user\\Videos",drive:"C:",subs:["Captures"],files:320},
+  {id:"E",name:"Old videos",path:"G:\\Old videos",drive:"G:",subs:["2019"],files:1500}
+];
+const DRIVES={"C:":{total:512,used:430},"D:":{total:2000,used:1612},"E:":{total:1000,used:874},"F:":{total:2000,used:1350},"G:":{total:1000,used:700}};
+const BIG=["Wedding_4K_full.mp4","Concert_full_2160p.mkv","Sports_day_long_take.mov","Trip_compilation_unedited.mp4"];
+let fid=0;
+const mk=(name,folder,sub,res,mbps,d,size,date,hue)=>({id:"f"+(++fid),name,root:folder.id,drive:folder.drive,dir:folder.path+"\\"+sub,res,mbps,dur:d,size,date,hue});
+const titles=["Summer_trip_Okinawa","Sports_day_2023","Wedding_highlights","Kids_birthday","Kyoto_autumn_leaves","Live_concert_01","Camping_night_view","Graduation","Coastal_drive","Pet_cat","New_Year_at_home","Fireworks_festival","School_play","Ski_trip","Shichi-Go-San","School_entrance"];
+function buildGroups(){
+  fid=0;const g=[];const [A,B,C]=BASE_FOLDERS;
+  titles.forEach((t,i)=>{
+    const h=hues[i%hues.length],size=0.4+((i*37)%23)/10,d=120+i*47,n=(i%4===0)?3:2;
+    const order=i%3===2?[B,C,A]:[A,B,C];
+    const files=[];
+    for(let k=0;k<n;k++){const fo=(i%5===1&&k===1)?order[0]:order[k];files.push(mk(k===0?t+".mp4":t+(k===1?" (1)":" - Copy")+".mp4",fo,fo.subs[i%2],"1920×1080",8,d,size,`202${1+(k*2+i)%3}-0${1+(i+k)%8}-1${k}`,h))}
+    g.push({id:"e"+i,type:"exact",files,status:"open",manual:false});
+  });
+  const sim=[["Trip_Hawaii","1920×1080",8.2,"1280×720",3.1,97],["Piano_recital","3840×2160",24,"1920×1080",9.5,95],["Barbecue","1920×1080",7.9,"1920×1080",4.2,93],["Aquarium","1280×720",4.0,"1920×1080",6.8,92],["Snow_festival","1920×1080",8.0,"1920×1080",8.0,96],["Pool","1920×1080",6.1,"854×480",1.4,90],["Zoo","1920×1080",8.4,"1920×1080",5.0,89],["Festival","1280×720",3.5,"1280×720",3.3,95],["TV_special_recording","1920×1080",12,"1920×1080",9.0,76],["Trip_compilation","1920×1080",8,"1280×720",3,71],["Family_gathering","1920×1080",8,"1920×1080",8,66],["Practice","1280×720",3,"1280×720",3,62]];
+  sim.forEach((s,i)=>{
+    const h=hues[(i+5)%hues.length],dA=240+i*33,dB=dA-(i%3===0?12:i%3===1?0:95),other=i%2?B:C;
+    const a=mk(s[0]+".mp4",A,A.subs[i%2],s[1],s[2],dA,s[2]*dA/8/1024,"2022-05-1"+i%9,h);
+    const b=mk(s[0]+"_edited.mp4",other,other.subs[i%2],s[3],s[4],dB,s[4]*dB/8/1024,"2024-02-0"+(1+i%8),h);
+    const files=[a,b];if(i===1)files.push(mk(s[0]+"_4K.mkv",B,B.subs[0],"3840×2160",18,dA,18*dA/8/1024,"2023-11-02",h));
+    g.push({id:"s"+i,type:s[5]>=85?"similar":"check",match:s[5],files,status:"open",manual:false});
+  });
+  return g;
+}
+const FAILED_SEED=[
+  {name:"Old_video_1998.avi",dir:"F:\\Backup\\2023\\Winter",reason:"The video couldn't be read (the file may be damaged)"},
+  {name:"Recording_partial.mp4",dir:"E:\\Downloads\\Videos",reason:"The file couldn't be read to the end (it may still be copying)"},
+  {name:"Family_trip_unsorted.mov",dir:"D:\\Videos\\Sorted\\Family",reason:"Access is not allowed"}
+];
+const HISTORY_SEED=[
+  {date:"2026-09-20 21:14",count:18,size:6.2,dest:"recycle",drive:"E:"},
+  {date:"2026-09-12 08:40",count:25,size:11.8,dest:"recycle",drive:"F:"},
+  {date:"2026-09-03 19:02",count:9,size:6.6,dest:"move",drive:"D:"}
+];
+
+/* ---------- state ---------- */
+let S;
+const S0={autoCheck:true};
+function newFolder(f,rank,scan){return {...f,rank,scan,started:Date.now(),stage:scan>=100?4:0}}
+function fresh(state0){const state=state0==="lang"?"first":state0;
+  const F=BASE_FOLDERS.map((f,i)=>newFolder(f,i+1,state==="scan"?(i===0?100:i===1?2:0):100));
+  S={state,folders:state==="first"?[]:F,groups:buildGroups(),queue:[],sel:null,
+     history:(state==="clean"||state==="return")?HISTORY_SEED.slice():[],
+     bin:{},dest:"recycle",quarantine:"",failed:state==="first"?[]:FAILED_SEED.map(x=>({...x})),judgments:[],firstRun:state==="scan",
+     retention:{file:"30",folder:"90",drive:""},criteria:["folder","date"],dateDir:"old",autoCheck:S0.autoCheck,check:null,lastCheck:state==="first"?"":"just now",newFiles:0,
+     open:{exact:true,similar:true,check:false,queue:false},peek:false,sort:"size",target:null,targetEdit:false,overlay:null,fmenu:null,prevNew:0,scanTicks:0,lang:state0==="lang",winLang:"ja"};
+  S.history.forEach(h=>{if(h.dest==="recycle")S.bin[h.drive]=(S.bin[h.drive]||0)+h.size});
+  S.groups.forEach(g=>g.keep=autoKeep(g));
+  if(state==="clean")S.groups.forEach(g=>g.status="done");
+  if(state==="return"){S.groups.forEach((g,i)=>{if(i%4)g.status="done";else g.pendingNew=true});S.lastCheck="3 days ago";
+    if(S.autoCheck)startCheck(true);}
+  $$(".proto button[data-state]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.state===state0));$("#proto-offline").setAttribute("aria-pressed","false");
+  if(state==="scan")tickScan();
+  render();
+}
+const byId=id=>S.groups.find(g=>g.id===id);
+const folderOf=f=>S.folders.find(x=>x.id===f.root);
+const oldest=fs=>fs.slice().sort((a,b)=>a.date.localeCompare(b.date))[0];
+const px=f=>{const [w,h]=f.res.split("×").map(Number);return w*h};
+const rankOf=f=>{const fo=S?folderOf(f):null;return fo?fo.rank:99};
+const critName=c=>c==="folder"?"Higher-priority folder":(S.dateDir==="old"?"Older modified date":"Newer modified date");
+function pickExact(files){
+  let c=files.slice();
+  for(const k of (S?S.criteria:["folder","date"])){
+    if(c.length<2)break;
+    if(k==="folder"){const best=Math.min(...c.map(rankOf));c=c.filter(f=>rankOf(f)===best)}
+    else{c.sort((a,b)=>(S&&S.dateDir==="new")?b.date.localeCompare(a.date):a.date.localeCompare(b.date));c=[c[0]]}
+  }
+  return c[0];
+}
+function autoKeep(g){
+  if(g.type==="exact")return pickExact(g.files).id;
+  return g.files.slice().sort((a,b)=>px(b)-px(a)||b.mbps-a.mbps||b.dur-a.dur)[0].id;
+}
+function reapplyRule(){S.groups.forEach(g=>{if(g.type==="exact"&&g.status==="open"&&!g.manual)g.keep=autoKeep(g)})}
+function keepReason(g){
+  if(g.manual)return "The file you chose (takes priority over the rules)";
+  if(g.type!=="exact")return "Best resolution, bitrate and length";
+  const k=g.files.find(f=>f.id===g.keep),fo=folderOf(k);
+  const dateTxt=S.dateDir==="old"?"oldest":"newest";
+  if(S.criteria[0]==="folder")return new Set(g.files.map(rankOf)).size>1?`It's in the priority ${fo.rank} folder (${fo.name})`:`The folders have the same priority, so the one with the ${dateTxt} modified date`;
+  return `It has the ${dateTxt} modified date`;
+}
+const trashOf=g=>g.files.filter(f=>f.id!==g.keep);
+const sizeOf=gs=>gs.reduce((a,g)=>a+trashOf(g).reduce((x,f)=>x+f.size,0),0);
+const liveRoots=()=>new Set(S.folders.map(f=>f.id));
+const scanDone=g=>g.files.every(f=>{const fo=folderOf(f);return !fo||fo.scan>=100});
+function visible(){const roots=liveRoots();return S.groups.filter(g=>!g.pendingNew&&g.files.filter(f=>roots.has(f.root)).length>=2&&scanDone(g))}
+const openOf=t=>visible().filter(g=>g.type===t&&g.status==="open");
+const qSize=()=>S.queue.reduce((a,q)=>a+q.file.size,0);
+const movedTotal=()=>S.history.reduce((a,h)=>a+h.size,0);
+const binTotal=()=>Object.values(S.bin).reduce((a,b)=>a+b,0);
+const scanningFolders=()=>S.folders.filter(f=>f.scan<100);
+const ranked=()=>S.folders.slice().sort((a,b)=>a.rank-b.rank);
+const ruleText=()=>ranked().map(f=>`${f.rank}. ${H(f.name)}`).join(" → ");
+const ruleHtml=()=>S.criteria.map((c,i)=>`<b>${"①②"[i]} ${critName(c)}</b>${c==="folder"?`<span class="num"> (${ruleText()})</span>`:""}`).join('<span class="sep">→</span>');
+
+/* ---------- queue ---------- */
+const offlineRoot=id=>{const fo=S.folders.find(x=>x.id===id);return !!(fo&&fo.offline)};
+const fileReady=f=>!offlineRoot(f.root);
+const groupReady=g=>g.files.every(fileReady);
+function enqueue(g){
+  if(!groupReady(g))return false;
+  const t=trashOf(g),ex=g.type==="exact",lim=ex?LIMIT_EXACT:LIMIT,cur=S.queue.filter(q=>(q.type==="exact")===ex).length;
+  if(cur+t.length>lim)return false;
+  t.forEach(file=>S.queue.push({gid:g.id,type:g.type,file,keep:g.files.find(f=>f.id===g.keep)}));g.status="queued";return true;
+}
+function enqueueSingle(f){
+  if(S.queue.some(q=>q.file.id===f.id)){toast("It's already in the cleanup list");return}
+  if(S.queue.filter(q=>q.type!=="exact").length+1>LIMIT){toast(`Individual files and very similar videos are limited to ${LIMIT} per run. Run the list first`);return}
+  S.queue.push({gid:"single-"+f.id,type:"single",file:f,keep:null});
+  toast(`Added “${f.name}” to the cleanup list (you'll check each item before running)`);render();
+}
+function approveExact(){
+  let added=0,left=0,blocked=0;
+  openOf("exact").forEach(g=>{if(!groupReady(g)){blocked++;return}if(enqueue(g))added++;else left++});
+  S.overlay=null;
+  toast(`Added ${P(added,"group")} to the cleanup list${left?`. The remaining ${P(left,"group")} ${left===1?"goes":"go"} in the next run`:""}${blocked?`. Excluded ${P(blocked,"group")} waiting for connection`:""}`);render();
+}
+function dequeue(gid){S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open";render()}
+
+/* ---------- render ---------- */
+function render(){
+  const keep={};[".list",".detail",".side",".analysis"].forEach(k=>{const e=$(k);if(e)keep[k]=e.scrollTop});
+  renderInner();
+  Object.entries(keep).forEach(([k,v])=>{const e=$(k);if(e)e.scrollTop=v});
+  requestAnimationFrame(placeFolderMenu);
+}
+function placeFolderMenu(){
+  const m=$(".fmenu");if(!m||!S.fmenu)return;
+  const k=$(`[data-fmenu="${S.fmenu}"]`).getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
+  const left=Math.max(8,Math.min(k.left,window.innerWidth-w-8));
+  const top=k.bottom+4+h>window.innerHeight-8?Math.max(8,k.top-h-4):k.bottom+4;
+  m.style.left=left+"px";m.style.top=top+"px";
+  const side=$(".side");if(side)side.onscroll=()=>{if(S.fmenu){S.fmenu=null;render()}};
+}
+/* First start: the language is chosen in a small window before the main one opens. */
+function langPicker(){
+  const btn=(code,name,sub)=>`<button class="lbtn${S.winLang===code?" primary":""}" data-lang="${code}">${name}<small>${sub}</small></button>`;
+  return `<div class="langstage"><div class="langwin" role="dialog" aria-label="Language"><div class="langbar"><span>Local Media AI — 言語 / Language</span><span aria-hidden="true">– □ ×</span></div>
+    <div class="langbody"><h2>表示する言語を選んでください<br>Choose the display language</h2><p>あとから設定で変えられます（再起動後に反映）。<br>You can change it later in Settings (takes effect after a restart).</p>
+    ${btn("ja","日本語","Japanese")}${btn("en","English","英語")}</div></div>
+    <div class="langnote">試作: Windows の言語 <button data-winlang="ja" aria-pressed="${S.winLang==="ja"}">日本語</button><button data-winlang="en" aria-pressed="${S.winLang==="en"}">英語</button>（合う方が青くなり、Enter で選べます。Esc で閉じると今回だけ Windows の言語）</div></div>`;
+}
+function bindLang(){
+  $$("[data-lang]").forEach(b=>b.onclick=()=>{if(b.dataset.lang==="en"){S.lang=false;toast("English selected. You can change it later in Settings");render()}else toast("日本語の画面は v17 の試作で見られます")});
+  $$("[data-winlang]").forEach(b=>b.onclick=()=>{S.winLang=b.dataset.winlang;render()});
+  const p=$(".lbtn.primary");if(p)p.focus();
+}
+function renderInner(){
+  $("#win").classList.toggle("pre",!!S.lang);
+  if(S.lang){$("#screen").innerHTML=langPicker();bindLang();renderOverlay();return}
+  if(S.state==="first"){$("#screen").innerHTML=onboard();bindScreen();renderOverlay();return}
+  const vis=visible(),anyLeft=vis.some(g=>g.status!=="done");
+  const openLeft=vis.some(g=>g.status==="open");
+  const work=(S.check&&(S.detail==="check"||(!openLeft&&!S.queue.length)))?checkScreen():(S.detail==="scan"&&scanningFolders().length)?analysisScreen():(!anyLeft&&!scanningFolders().length&&!S.queue.length)?cleanScreen():(!vis.length&&scanningFolders().length)?analysisScreen():flow();
+  $("#screen").innerHTML=`<div class="body">${sidebar()}<div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize the left pane" tabindex="0"></div><div class="work">${work}</div></div>`;
+  bindScreen();renderOverlay();
+}
+function folderRow(f){
+  const n=S.folders.length;
+  const st=f.offline?`<span class="fstate off">Not connected (${f.drive})</span>`:f.scan<100?`<span class="fstate scan num">Analyzing ${f.scan}% · ${etaText(f)}</span><div class="fbar"><i style="width:${f.scan}%"></i></div>`:`<span class="fstate num">${P(f.files,"video")} · analyzed</span>`;
+  return `<div class="fold" draggable="true" data-i="${f.rank-1}" tabindex="0" title="Drag up or down to change the priority (or use Alt+↑↓)"><span class="fico" aria-hidden="true"></span>
+    <div style="min-width:0"><div class="fname"><span>${H(f.name)}</span><span class="rank num" title="Priority when keeping identical videos">Priority ${f.rank}</span></div><div class="fsub">${H(f.path)}</div>${st}</div>
+    <button class="kebab" data-fmenu="${f.id}" aria-label="Actions for ${H(f.name)}">⋯</button>
+    ${S.fmenu===f.id?`<div class="menu fmenu">
+      <button data-fact="up" data-id="${f.id}" ${f.rank===1?"disabled":""}>Raise priority</button>
+      <button data-fact="down" data-id="${f.id}" ${f.rank===n?"disabled":""}>Lower priority</button>
+      <hr><button data-fact="explorer" data-id="${f.id}">Open in File Explorer</button>
+      <button data-fact="files" data-id="${f.id}">List the files inside</button>
+      <button data-fact="rescan" data-id="${f.id}">Analyze again</button>
+      <hr><button class="danger" data-fact="remove" data-id="${f.id}">Remove from clean-up<small>The original files are not deleted</small></button></div>`:""}
+  </div>`;
+}
+function driveBlock(d,withQueue){
+  if(S.folders.some(f=>f.drive===d&&f.offline))return `<div class="drv"><div class="top"><b>${d}</b><span style="color:var(--danger)">Not connected</span></div></div>`;
+  const x=DRIVES[d],bin=S.bin[d]||0,q=withQueue&&S.dest==="recycle"?S.queue.filter(z=>z.file.drive===d).reduce((a,z)=>a+z.file.size,0):0;
+  const free=x.total-x.used,after=free+bin;
+  const solid=x.used-bin-q;
+  return `<div class="drv"><div class="top"><b>${d}</b><span class="num">${Math.round(free)} GB free</span></div>
+    <div class="dbar" aria-hidden="true"><i style="width:${solid/x.total*100}%"></i><s style="width:${bin/x.total*100}%"></s><em style="width:${q/x.total*100}%"></em></div>
+    ${bin||q?`<div class="alt num"><span>${bin?`${gb(bin)} in Recycle Bin`:""}${q?`${bin?" · ":""}Cleanup list ${gb(q)}`:""}</span><span>About ${Math.round(after+q)} GB once emptied</span></div>`:""}</div>`;
+}
+function driveLegend(){return `<div class="legend"><span><i style="background:#5B6B80"></i>Used</span><span><i style="background:var(--bin)"></i>In Recycle Bin</span><span><i style="background:var(--keep)"></i>Cleanup list</span></div>`}
+function sidebar(){
+  const drives=[...new Set(S.folders.map(f=>f.drive))].sort();
+  return `<aside class="side" aria-label="Folders to clean up">
+    <div class="side-sec"><div class="side-h"><h2>Folders to clean up <span class="num">(${S.folders.length})</span></h2>${S0.hint===false?'<button class="qmark" id="hint-open" title="About the “Priority” numbers" aria-label="About the “Priority” numbers">?</button>':""}<span class="sp"></span><button class="add" id="add-folder">+ Add</button></div>
+      <div class="checkline"><span>Last checked: ${S.check?"checking…":S.lastCheck||"—"}</span><span class="sp"></span><button class="link" id="check-now" ${S.check?"disabled":""}>Check for changes</button></div>
+      ${ranked().map(folderRow).join("")}
+      ${S0.hint===false?"":`<div class="hintbox">Duplicates are searched across all the folders here together. The “Priority” number decides which identical video is kept. Drag a folder up or down to change it. <button class="link" id="hint-close">Close</button></div>`}
+      ${S.failed.length?`<button class="sidelink warnlink" id="open-failed" style="width:100%"><span>⚠ Files that couldn't be analyzed</span><span class="num">${S.failed.length}</span></button>`:""}
+    </div>
+    <div class="side-sec"><div class="side-h"><h2>Drive space</h2><span class="sp"></span>${binTotal()?'<button class="link" data-open="bin">Open Recycle Bin</button>':""}</div><div class="drives">${drives.map(d=>driveBlock(d,true)).join("")}</div>${driveLegend()}</div>
+    <div class="side-foot">
+      <button class="sidelink" id="open-cleanup"><span>Clean-up (list, destination, history)</span><span class="num">${S.queue.length?P(S.queue.length,"item"):""}</span></button>
+      <button class="sidelink" id="open-files2"><span>All files</span><span>›</span></button>
+    </div>
+  </aside>`;
+}
+function etaText(f){
+  const ticks=S.scanTicks;
+  if(f.scan<100&&ticks<4)return "estimating time left";
+  return mins((100-f.scan)*0.35)+" left";
+}
+function overallEta(){const sc=scanningFolders();if(!sc.length)return "";if(S.scanTicks<4)return "Estimating time left…";return mins(sc.reduce((a,f)=>a+(100-f.scan)*0.35,0))+" left"}
+function scanStrip(){
+  const sc=scanningFolders();if(!sc.length)return "";
+  const tot=S.folders.reduce((a,f)=>a+f.scan,0)/S.folders.length;
+  return `<div class="scanstrip" role="status"><span class="pulse" aria-hidden="true"></span><span>Analyzing: <b>${sc.map(f=>H(f.name)).join(", ")}</b> · ${overallEta()} (estimate)</span><div class="bar"><i style="width:${tot}%"></i></div><span class="num">${Math.round(tot)}%</span><span style="flex:1"></span><button class="link" id="show-analysis">Details</button></div>`;
+}
+const STAGES=["File list","Video info","Identical check","Similarity check"];
+function analysisScreen(){
+  const sc=S.folders,tot=sc.reduce((a,f)=>a+f.scan,0)/sc.length;
+  const cur=scanningFolders()[0],big=BIG[S.scanTicks%BIG.length];
+  const el=Math.floor(S.scanTicks*0.4*60/8);
+  return `<div class="analysis" aria-live="polite">
+    ${S.detail?'<div><button class="btn small" id="back-list">← Back to the duplicate list</button></div>':""}
+    <div class="an-head"><h2>Analyzing</h2><span class="an-eta num">${overallEta()}<small>Estimate · varies with file size</small></span></div>
+    <div class="bar" style="height:8px"><i style="width:${tot}%"></i></div>
+    ${cur?`<div class="current"><span class="pulse" aria-hidden="true"></span><span>Now analyzing: <b>${big}</b> (${(8+S.scanTicks%11).toFixed(1)} GB) · updated a few seconds ago</span></div>`:""}
+    <div class="an-card">${sc.map(f=>{const done=Math.round(f.files*f.scan/100);const stage=f.scan>=100?4:f.scan<15?0:f.scan<40?1:f.scan<75?2:3;
+      return `<div class="an-row"><span class="fico" aria-hidden="true"></span><div><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div>
+      <div class="stages">${STAGES.map((s,i)=>`<span class="${i<stage?"ok":i===stage&&f.scan<100?"now":""}">${i<stage?"✓ ":""}${s}</span>`).join("")}</div>
+      <div class="bar" style="margin-top:6px"><i style="width:${f.scan}%"></i></div></div>
+      <div class="num" style="text-align:right;font-size:12px;color:var(--muted)">${done.toLocaleString()} / ${P(f.files,"video")}<br>${f.scan>=100?'<span style="color:var(--keep)">Done</span>':etaText(f)}</div></div>`}).join("")}</div>
+    <div class="reassure">
+      <span>Large videos (4K or long recordings) can take a few minutes each. Even if the numbers seem stuck, processing continues while the dot on the left is blinking.</span>
+      <span>Duplicates appear on this screen as they are found, without waiting for the analysis to finish, so you can start cleaning up right away.</span>
+      <span>You can close the app. Analysis continues from where it stopped the next time you open it.</span>
+    </div>
+    <div class="actions"><button class="btn" id="notify">Notify me when done</button></div>
+  </div>`;
+}
+const readyExact=()=>openOf("exact").filter(groupReady);
+/* Similar groups where the choice is not in doubt: near-identical, same length, and the kept file is as good or better in every way. */
+function isClear(g){
+  if(g.type!=="similar"||g.status!=="open"||!groupReady(g)||g.match<95)return false;
+  const k=g.files.find(f=>f.id===g.keep);
+  return g.files.every(f=>Math.abs(f.dur-k.dur)<=1&&px(f)<=px(k)&&f.mbps<=k.mbps);
+}
+const clearGroups=()=>openOf("similar").filter(isClear);
+const needsCheck=q=>q.type!=="exact"&&!q.approved;
+/* ---------- sort and goal ---------- */
+const onGoal=f=>!S.target||S.target.drive==="all"||f.drive===S.target.drive;
+const freeOn=g=>trashOf(g).filter(onGoal).reduce((a,f)=>a+f.size,0);
+const queueOn=()=>S.queue.filter(q=>onGoal(q.file)).reduce((a,q)=>a+q.file.size,0);
+function orderedOpen(type){
+  const gs=visible().filter(g=>g.type===type&&g.status==="open");
+  return S.sort==="size"?gs.slice().sort((a,b)=>freeOn(b)-freeOn(a)):gs;
+}
+/* The group after which the cleanup list plus everything above it reaches the goal. */
+function goalHit(){
+  if(!S.target)return null;
+  let acc=queueOn();if(acc>=S.target.size)return "queue";
+  for(const t of ["exact","similar","check"])for(const g of orderedOpen(t)){acc+=freeOn(g);if(acc>=S.target.size)return g.id}
+  return null;
+}
+function goalLabel(){const t=S.target;return `free ${t.size} GB${t.drive==="all"?"":" on "+t.drive}`}
+function listBar(){
+  const t=S.target,drives=[...new Set(S.folders.map(f=>f.drive))].sort();
+  let goal="";
+  if(t){const q=queueOn(),all=q+["exact","similar","check"].reduce((a,ty)=>a+orderedOpen(ty).reduce((x,g)=>x+freeOn(g),0),0);
+    goal=`<span class="goaltxt">Goal: ${goalLabel()} · cleanup list <b class="num">${gb(q)}</b> (${Math.min(100,Math.round(q/t.size*100))}%)${all<t.size?` · <span style="color:var(--warn)">Cleaning up the whole list only reaches ${gb(all)}</span>`:""}</span>`}
+  const form=S.targetEdit?`<div class="goalform">Free<span class="unit"><input type="text" inputmode="numeric" id="goal-gb" value="${t?t.size:""}" aria-label="Space to free (GB)"><span>GB</span></span>on<select id="goal-drive" aria-label="Drive to free up"><option value="all">all drives</option>${drives.map(d=>`<option ${t&&t.drive===d?"selected":""}>${d}</option>`).join("")}</select><button class="btn small primary" id="goal-ok">Set</button>${t?'<button class="btn small ghost" id="goal-clear">Clear goal</button>':""}<button class="btn small ghost" id="goal-cancel">Cancel</button><div class="hint">Groups that free space on that drive move to the top, and a line in the list shows how far you need to go to reach the goal. Space sent to the Recycle Bin is freed when you empty it.</div></div>`:"";
+  return `<div class="listbar"><label>Sort <select id="sort"><option value="size" ${S.sort==="size"?"selected":""}>Most space freed first</option><option value="found" ${S.sort==="found"?"selected":""}>Order found</option></select></label><span class="sp"></span>${goal}<button class="link" id="goal-edit">${t?"Change goal":"Set how much to free"}</button></div>${form}`;
+}
+/* Only the cleanup list is shown while it waits to be run: approved identical files are in it, or nothing else is left to choose. */
+const runOnly=()=>S.queue.length>0&&!readyExact().length&&(S.queue.some(q=>q.type==="exact")||!visible().some(g=>g.status==="open"&&groupReady(g)));
+function stepper(){
+  const ex=readyExact().length,qEx=S.queue.some(q=>q.type==="exact");
+  const sim=openOf("similar").length+openOf("check").length,qOt=S.queue.some(q=>q.type!=="exact");
+  const s1=ex?"on":"ok",s2=ex?"":qEx?"on":"ok",s3=s1==="ok"&&s2==="ok"?(sim||qOt?"on":"ok"):"";
+  const L=[["1","Identical: approve the rule",s1],["2","Run the cleanup list",s2],["3","Very similar: review one group at a time",s3]];
+  return `<div class="steps" aria-label="Clean-up steps">${L.map(([n,t,c],i)=>`${i?'<i aria-hidden="true">→</i>':""}<span class="${c}" ${c==="on"?'aria-current="step"':""}>${c==="ok"?"✓":n}. ${t}</span>`).join("")}</div>`;
+}
+function nextAction(){
+  const vis=visible(),ex=readyExact(),sim=openOf("similar").concat(openOf("check")),openAll=vis.filter(g=>g.status==="open"),offN=openAll.filter(g=>!groupReady(g)).length;
+  const stats=`Duplicates <b class="num">${P(openAll.length,"group")}</b> · can free <b class="num">${gb(sizeOf(openAll))}</b> · cleaned up so far <b class="num">${gb(movedTotal())}</b>${binTotal()?` (${gb(binTotal())} still in Recycle Bin)`:""}${offN?` · ${P(offN,"group")} waiting for connection`:""}`;
+  let t,d,b="",id="",cls="primary big";
+  if(S.prevNew&&!S.queue.length&&openAll.length){t=`Found ${P(S.prevNew,"new duplicate group")} since last time`;d=`The startup check analyzed ${P(S.newFiles,"new file")}. The newly found groups are in the list.`;b="View the first group";id="go-first"}
+  else if(ex.length){
+    t=`${SAME} There ${ARE(ex.length)} ${P(ex.length,"group")} of identical files (${gb(sizeOf(ex))})`;
+    d="The one to keep has been chosen by your rule. Use the button below to check the rule and how many files each folder will clean up, then approve.";
+    b="Review rule and approve";id="approve";
+  }
+  else if(runOnly()){t=`${P(S.queue.length,"item")} in the cleanup list (${gb(qSize())})`;d="The list shows only what will be cleaned up. “Review and run” lets you check the contents once more before cleaning up.";b="Review and run →";id="go-run"}
+  else if(sim.length&&clearGroups().length){const c=clearGroups();t=`There ${ARE(sim.length)} ${P(sim.length,"group")} of very similar videos`;d=`Of these, ${P(c.length,"group")} (${gb(sizeOf(c))}) ${ARE(c.length)} nearly the same in length and content, and the one to keep has the same or better quality. You can approve ${c.length===1?"it":"them together"}. Compare the rest one group at a time.`;b=c.length===1?"Approve the 1 clear group":`Approve the ${c.length} clear groups together`;id="bulk"}
+  else if(sim.length){t=`There ${ARE(sim.length)} ${P(sim.length,"group")} of very similar videos`;d="They are separate files, so compare them on the right, choose the one to keep, and press “Add this group to the cleanup list”.";if(S.queue.length)d+=` The ${P(S.queue.length,"item")} in the cleanup list will be cleaned up together with “Review and run” below.`}
+  else{t=scanningFolders().length?"The duplicates found so far are cleaned up. Waiting for the rest of the analysis":"No groups need a choice";d=S.queue.length?"Run the cleanup list to finish.":""}
+  return `<section class="next" aria-live="polite"><div class="top">${stepper()}<span class="sp"></span><span class="stats">${stats}</span></div><div class="t">${t}</div><div class="d">${d}</div>${b?`<div class="go"><button class="btn ${cls}" id="${id}">${b}</button></div>`:""}</section>`;
+}
+/* Identical copies differ only in where they are, so one line per group: the name once, then the folders. */
+function compactRow(g,mark){
+  const k=g.files.find(f=>f.id===g.keep),t=trashOf(g),free=gb(freeOn(g));
+  const fname=f=>{const x=folderOf(f);return x?x.name:f.drive};
+  const loc=(f,c)=>`<span class="loc ${c}"><em>${c==="k"?"Keep":"Clean up"}</em>${H(fname(f))}${c==="t"&&f.root===k.root?" (same folder)":""}${fileReady(f)?"":" · not connected"}</span>`;
+  const cnt=g.type==="exact"?`<span class="cnt num">×${g.files.length}</span>`:`<span class="cnt num">${g.match}% match</span>`;
+  const tip=g.files.map(f=>`${f.id===g.keep?"Keep":"Clean up"}: ${f.dir}\\${f.name}`).join("\n");
+  const pills=`${g.manual?' <span class="pill manual">Chosen manually</span>':""}${groupReady(g)?"":' <span class="pill">Connect to clean up</span>'}`;
+  return `<div class="group one ${S.sel===g.id?"sel":""}" data-g="${g.id}" tabindex="0" role="button" title="${H(tip)}" aria-label="Group of ${H(k.name)}">${thumb(k.hue,k.name)}<div class="r-main"><div class="r-name">${mark?MARK(g.type)+" ":""}${H(k.name)}${cnt}${pills}</div><div class="locs">${loc(k,"k")}${t.map(f=>loc(f,"t")).join("")}</div></div><div class="r-right num"><b>${free}</b>${k.res} · ${dur(k.dur)}</div></div>`;
+}
+function singleRow(q){
+  const fo=folderOf(q.file);
+  return `<div class="group one single">${thumb(q.file.hue,q.file.name)}<div class="r-main"><div class="r-name">${MARK("single")} ${H(q.file.name)}</div><div class="locs"><span class="loc t"><em>Clean up</em>${H(fo?fo.name:q.file.drive)}</span></div></div><div class="r-right num"><b>${gb(q.file.size)}</b><button class="link" data-unq="${q.gid}">Remove</button></div></div>`;
+}
+function fullGroup(g,type){
+  const free=gb(freeOn(g));
+  const head=`${MARK(type)}<span class="num">${g.match}% match · ${free} can be freed</span>`;
+  return `<div class="group ${S.sel===g.id?"sel":""}" data-g="${g.id}" tabindex="0" role="button" aria-label="Group of ${H(g.files.find(f=>f.id===g.keep).name)}">
+    <div class="g-head">${head}<span class="sp"></span>${isClear(g)?'<span class="pill info">Clear</span>':""}${g.manual?'<span class="pill manual">Chosen manually</span>':""}${groupReady(g)?"":'<span class="pill">Connect to clean up</span>'}</div>
+    ${g.files.map(f=>row(f,f.id===g.keep?'<span class="pill keep r-tag">Keep</span>':'<span class="pill trash r-tag">Clean up</span>')).join("")}</div>`;
+}
+function groupSection(type,name,desc){
+  const gs=orderedOpen(type);
+  if(!gs.length)return "";
+  const open=S.open[type],n=gs.length,hit=goalHit();
+  const line=`<div class="goal">✓ Cleaning up to here reaches the goal (${S.target?goalLabel():""})</div>`;
+  const body=open?gs.map(g=>(type==="exact"?compactRow(g,false):fullGroup(g,type))+(g.id===hit?line:"")).join(""):"";
+  return `<section><div class="sect-h"><button class="caret" data-toggle="${type}" aria-expanded="${open}" aria-label="${open?"Collapse":"Expand"} ${name}">${open?"▾":"▸"}</button><span class="name">${MARK(type)}${name}</span><span class="meta num">${P(n,"group")} · ${desc}</span><span class="sp"></span>${type==="exact"?'<span class="pill keep">Selected by rule</span>':'<span class="pill info">Review one group at a time</span>'}</div>${body}</section>`;
+}
+function queuedGroups(){return [...new Set(S.queue.map(q=>q.gid))].map(id=>({id,g:byId(id),q:S.queue.filter(x=>x.gid===id)}))}
+function queueSection(forceOpen){
+  const items=queuedGroups(),open=forceOpen||S.open.queue;
+  const caret=forceOpen?'<span class="caret" aria-hidden="true"></span>':`<button class="caret" data-toggle="queue" aria-expanded="${open}" aria-label="${open?"Collapse":"Expand"} the cleanup list">${open?"▾":"▸"}</button>`;
+  return `<section><div class="sect-h">${caret}<span class="name"><span class="pill trash">Cleanup list</span>To be cleaned up</span><span class="meta num">${P(items.length,"group")} · ${P(S.queue.length,"item")} · ${gb(qSize())}</span><span class="sp"></span></div>${open?items.map(x=>x.g?compactRow(x.g,true):singleRow(x.q[0])).join(""):""}</section>`;
+}
+function laterLine(){
+  const sim=openOf("similar").length,chk=openOf("check").length,off=openOf("exact").filter(g=>!groupReady(g)).length;
+  const parts=[sim?`${P(sim,"group")} of very similar videos`:"",chk?`${P(chk,"group")} to double-check`:"",off?`${P(off,"identical group")} waiting for connection`:""].filter(Boolean).join(" · ");
+  if(!parts)return "";
+  return `<div class="later">${sim||chk?LIKE:SAME}<span><b>${parts}</b> will be reviewed after the run.</span><span class="sp"></span><button class="link" id="peek">${S.peek?"Hide":"View first"}</button></div>`;
+}
+const sections=()=>groupSection("exact","Identical","identical content")+groupSection("similar","Very similar","85%+ match")+groupSection("check","Double-check","under 85% match");
+/* The groups in the list, top to bottom: what J/K walk through and what is selected first. */
+function listedGroups(){
+  const qg=queuedGroups().map(x=>x.g).filter(Boolean),order=["exact","similar","check"];
+  const open=order.filter(t=>S.open[t]).flatMap(orderedOpen);
+  if(runOnly())return S.peek?qg.concat(open):qg;
+  return (S.open.queue?qg:[]).concat(open);
+}
+function fileMenuBtn(f,ctx){return `<button class="kebab" data-filemenu="${f.id}" data-ctx="${ctx}" aria-label="Actions for ${H(f.name)} (play, show in File Explorer)">⋯</button>`}
+function detailPane(){
+  const g=byId(S.sel);
+  if(!g||!visible().includes(g))return `<div class="empty">Choose a group from the list on the left to compare it here.<div class="keys">Keys: J/K next/previous group · 1/2/3 choose the one to keep · Enter add to cleanup list · N keep as is</div></div>`;
+  const ready=groupReady(g),L="ABCDEFG",fs=g.files;
+  const opts=fs.map((f,i)=>`<div class="optw"><label class="opt ${f.id===g.keep?"keep":""}"><input type="radio" name="keep-${g.id}" value="${f.id}" ${f.id===g.keep?"checked":""} ${g.status!=="open"?"disabled":""}><div>${row(f,`${g.type!=="exact"?` <span class="pill">${L[i]}</span>`:""}${f.id===g.keep?'<span class="pill keep r-tag">Keep</span>':'<span class="pill trash r-tag">Clean up</span>'}${fileReady(f)?"":'<span class="pill r-tag" style="color:var(--danger)">Not connected</span>'}`,true)}${f.id===g.keep?`<div class="why">${keepReason(g)}</div>`:""}</div></label>${fileMenuBtn(f,"detail")}</div>`).join("");
+  const off=ready?"":`<div class="note warn">This group includes files on a drive that is not connected. Connect the drive to clean them up.</div>`;
+  const keys=`<div class="keys">Keys: ${fs.map((f,i)=>i+1).join("/")} choose the one to keep${g.type!=="exact"?" · Enter add to cleanup list":""} · N keep as is · J/K next/previous group</div>`;
+  if(g.type==="exact")return `<h2 class="d-title"><span class="same lg">=</span>Identical files</h2><p class="d-sub">The content is exactly the same (<span class="num">${facts(fs[0])}</span>). The quality is the same too, so the choice is by location.</p><div class="choice" role="radiogroup" aria-label="File to keep">${opts}</div>${off}
+    <div class="note ${g.manual?"ok":""}">${g.manual?"You re-selected this group. Your choice stays even if you approve or change the rule.":"To keep a different file, choose it above. Groups you re-select keep your choice when you approve the rule."}</div>
+    <div class="actions">${g.manual&&g.status==="open"?`<button class="btn small" data-reset="${g.id}">Back to the rule's choice</button>`:""}${g.status==="queued"?`<button class="btn" data-unq="${g.id}">Remove from cleanup list</button>`:""}${g.status==="open"?`<button class="btn ghost" data-skip="${g.id}">Keep as is</button><button class="btn small ghost" id="edit-rule4">View or change the keep rule</button>`:""}</div>${keys}`;
+  const bestIdx=fn=>{const v=fs.map(fn),m=Math.max(...v);return v.every(x=>x===m)?[]:v.map(x=>x===m)};
+  const r1=bestIdx(px),r2=bestIdx(f=>f.mbps),r3=bestIdx(f=>f.dur);
+  const cell=(arr,i,txt)=>`<td class="${arr[i]?"best":""}">${txt}</td>`;
+  const durs=fs.map(f=>f.dur),dd=Math.max(...durs)-Math.min(...durs);
+  const warn=[];if(dd>5)warn.push(`The lengths differ by up to ${dur(dd)}. Some scenes may be in only one of them.`);if(new Set(fs.map(f=>f.res)).size>1)warn.push("The resolutions differ.");
+  const fr=[0.1,0.45,0.8].map((p,i)=>`<div class="frame">${thumb((fs[0].hue+i*25)%360,"matching scene")}<span class="num">${fs.map((f,k)=>`${L[k]} ${dur(f.dur*p)}`).join(" / ")}</span></div>`).join("");
+  const title=g.type==="similar"?'<span class="like lg">≈</span>Very similar videos':'<span class="chk lg">!</span>Videos to double-check';
+  return `<h2 class="d-title">${title}</h2><p class="d-sub"><span class="num">${g.match}%</span> match. They are separate files, so compare the ${fs.length} videos and choose the one to keep.</p>
+    <div class="choice" role="radiogroup" aria-label="File to keep">${opts}</div>${off}
+    <div class="h3">File info</div>
+    <div style="overflow-x:auto"><table class="facts num"><tr><th></th>${fs.map((f,i)=>`<th>${L[i]}</th>`).join("")}</tr>
+      <tr><th>Resolution</th>${fs.map((f,i)=>cell(r1,i,f.res)).join("")}</tr>
+      <tr><th>Bitrate</th>${fs.map((f,i)=>cell(r2,i,f.mbps+" Mbps")).join("")}</tr>
+      <tr><th>Length</th>${fs.map((f,i)=>cell(r3,i,dur(f.dur))).join("")}</tr>
+      <tr><th>Size</th>${fs.map(f=>`<td>${gb(f.size)}</td>`).join("")}</tr>
+      <tr><th>Format</th>${fs.map(f=>`<td>${f.name.split(".").pop().toUpperCase()}</td>`).join("")}</tr>
+      <tr><th>Modified</th>${fs.map(f=>`<td>${f.date}</td>`).join("")}</tr></table></div>
+    ${warn.map(w=>`<div class="note warn">${w}</div>`).join("")}
+    <div class="h3">Matching scenes</div><div class="frames">${fr}</div>
+    <div class="h3">Play side by side</div><div class="player" style="grid-template-columns:repeat(${Math.min(fs.length,3)},1fr)">${fs.map((f,i)=>`<div style="position:relative">${thumb((f.hue+i*10)%360,L[i])}<span class="plabel">${L[i]}</span></div>`).join("")}</div>
+    <div class="scrub"><button class="btn small" id="play">▶ Play together</button><div class="track" aria-hidden="true"><i id="scrub" style="width:12%"></i></div><span style="color:var(--muted);font-size:12px">From the matching scene</span></div>
+    <div class="actions">${g.status==="open"?`<button class="btn primary" data-enq="${g.id}" ${ready?"":"disabled"}>Add this group to the cleanup list</button><button class="btn ghost" data-skip="${g.id}">Keep as is</button>`:`<button class="btn" data-unq="${g.id}">Remove from cleanup list</button>`}</div>${keys}`;
+}
+function flow(){
+  const vis=visible(),only=runOnly(),lst=listedGroups();
+  if(!lst.some(g=>g.id===S.sel))S.sel=lst.length?lst[0].id:null;
+  const list=!vis.length&&!S.queue.length?`<div class="empty">No duplicates match this view.</div>`:only?laterLine()+queueSection(true)+(S.peek?sections():""):(S.queue.length?queueSection(false):"")+sections();
+  return `${checkStrip()}${scanStrip()}${nextAction()}
+  <div class="main"><div class="listcol">${only?"":listBar()}<div class="list" aria-label="Duplicate list">
+    ${list}
+  </div></div><div class="detail" aria-live="polite">${detailPane()}</div></div>
+  ${actionbar()}`;
+}
+function destLabel(){return S.dest==="recycle"?"Windows Recycle Bin":"Holding folder"}
+function actionbar(){
+  const ex=S.queue.filter(q=>q.type==="exact").length,ot=S.queue.length-ex;
+  const pct=Math.max(ex/LIMIT_EXACT,ot/LIMIT)*100,near=pct>=80;
+  /* The limit only matters near it; the run button is left to the card above when that card already offers it. */
+  return `<div class="actionbar"><div><div class="sum">Cleanup list <b class="num">${P(S.queue.length,"item")}</b> · <b class="num">${gb(qSize())}</b></div>${S.target?`<div class="cap" style="color:var(--keep)">${gb(Math.max(0,S.target.size-queueOn()))} to go to the goal (${goalLabel()})</div>`:""}<div class="cap">Destination: ${destLabel()} <button class="link" data-open="${S.dest==="recycle"?"bin":"vault"}">Open</button>${near?` · <span style="color:var(--warn)">Up to ${LIMIT_EXACT} identical / ${LIMIT} other items per run (${Math.max(0,LIMIT_EXACT-ex)} / ${Math.max(0,LIMIT-ot)} left)</span>`:""}</div></div>${near?`<div class="meter" aria-hidden="true"><i style="width:${pct}%"></i></div>`:""}<span class="sp"></span><button class="btn ghost" id="open-cleanup2">List and destination</button>${runOnly()?"":`<button class="btn outline" id="run" ${S.queue.length?"":"disabled"}>Review and run →</button>`}</div>`;
+}
+function onboard(){
+  return `<div class="onboard"><div class="drop"><div class="bigico" aria-hidden="true"></div><h2>Add the folders of videos you want to clean up</h2><p>Once added, they're analyzed automatically to find identical and very similar videos across all your folders. Your original files aren't changed until you approve.</p><button class="btn primary" id="first-add">Choose a folder</button><p style="font-size:12px">You can also drag a folder here</p></div></div>`;
+}
+function cleanScreen(){
+  const bin=binTotal();
+  return `<div class="onboard"><div class="drop" style="border-style:solid"><div class="bigstat num">${gb(movedTotal())}</div><h2>All duplicates are cleaned up</h2><p>${S.autoCheck?"Next time you start the app, it checks your folders for changes automatically and tells you only about new duplicates.":`The startup check is off (last checked: ${S.lastCheck||"—"}). After adding new videos, press “Check for changes”.`}</p><p>This is how much you've cleaned up so far.${bin?` ${gb(bin)} of it is still in the Recycle Bin. Emptying the Recycle Bin frees that space on the drive.`:""}</p><div class="actions">${bin?'<button class="btn" data-open="bin">Open Recycle Bin</button>':""}<button class="btn" id="check-now2">Check for changes now</button><button class="btn" id="open-cleanup3">View clean-up history</button><button class="btn primary" id="add-folder2">Add folder</button></div></div></div>`;
+}
+
+/* ---------- overlays ---------- */
+function renderOverlay(){
+  const o=S.overlay,el=$("#overlay");
+  if(!o){el.innerHTML="";return}
+  el.innerHTML={files:filesDrawer,cleanup:cleanupDrawer,add:addModal,remove:removeModal,settings:settingsModal,run:runModal,approve:approveModal,bulk:bulkModal,failed:failedDrawer,player:playerModal,prio:prioModal}[o.kind]();
+  bindOverlay();
+}
+function filesDrawer(){
+  const all=S.groups.flatMap(g=>g.files.map(f=>({f,g}))).filter(x=>S.folders.some(fo=>fo.id===x.f.root));
+  const cur=S.overlay.folder||null,list=all.filter(x=>!cur||x.f.root===cur).slice(0,40);
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="All files"><div class="drawer-h"><b>All files</b><span class="sp"></span><button class="btn" data-close>Close</button></div>
+  <div class="filter" style="flex-wrap:wrap">Folder:${[null,...ranked()].map(fo=>`<button class="chip" style="${(fo?fo.id:null)===cur?"border-color:var(--accent)":""}" data-ff="${fo?fo.id:""}">${fo?H(fo.name):"All"}</button>`).join("")}</div>
+  <div class="drawer-b files">${list.map(x=>`<div class="optw" style="padding-right:10px">${row(x.f,(x.g.status==="done"?"":` ${MARK(x.g.type)} <button class="link" data-jump="${x.g.id}">View duplicate group</button>`)+(S.queue.some(q=>q.file.id===x.f.id)?' <span class="pill trash">Cleanup list</span>':""))}${fileMenuBtn(x.f,"files")}</div>`).join("")}</div></aside></div>`;
+}
+function vaultError(p){
+  if(!/^[A-Za-z]:\\/.test(p))return "Enter a location that starts with a drive, like “D:\\Duplicates”";
+  const lp=p.toLowerCase().replace(/\\+$/,"");
+  const f=S.folders.find(x=>{const r=x.path.toLowerCase();return lp===r||lp.startsWith(r+"\\")});
+  return f?`It can't be inside “${f.name}”. Files kept there would be found as duplicates again, so choose a place outside the folders to clean up`:"";
+}
+function vaultForm(){
+  const o=S.overlay;
+  return `<div class="vaultf"><label for="vault-path" style="font-size:12px;color:var(--muted)">Holding folder location (created new here)</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input type="text" id="vault-path" placeholder="e.g. D:\\Duplicates" value="${H(o.vaultDraft||"")}" class="tin"><button class="btn small" id="vault-browse">Browse…</button><button class="btn small primary" id="vault-ok">Create folder</button><button class="btn small ghost" id="vault-cancel">Cancel</button></div>
+    ${o.vaultErr?`<div class="note warn">${H(o.vaultErr)}</div>`:""}
+    <div style="font-size:11px;color:var(--faint)">It can't be inside the folders to clean up.</div></div>`;
+}
+function cleanupDrawer(){
+  const groups={};S.queue.forEach(q=>{(groups[q.gid]=groups[q.gid]||{type:q.type,items:[]}).items.push(q)});
+  const drives=[...new Set(S.folders.map(f=>f.drive))].sort();
+  const ex=S.queue.filter(q=>q.type==="exact").length,ot=S.queue.length-ex,vault=S.quarantine,o=S.overlay;
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="Clean-up"><div class="drawer-h"><b>Clean-up</b><span class="sp"></span><button class="btn" data-close>Close</button></div><div class="drawer-b">
+  <section class="dsec"><h3>This cleanup list <span class="pill num">Identical ${ex}/${LIMIT_EXACT} · other ${ot}/${LIMIT} · ${gb(qSize())}</span><span class="sp"></span>${S.queue.length?'<button class="btn small ghost" id="clear-q">Remove all</button>':""}</h3>
+    ${S.queue.length?Object.entries(groups).map(([gid,x])=>x.items.map(q=>`<div class="qrow">${row(q.file," "+MARK(x.type))}<button class="btn small ghost" data-unq="${gid}">Remove</button></div>`).join("")).join(""):'<p style="color:var(--muted);margin:0">Nothing yet. Items are added here when you choose the one to keep in the duplicate list.</p>'}
+  </section>
+  <section class="dsec"><h3>Destination</h3><div class="dest">
+    <label class="${S.dest==="recycle"?"on":""}"><input type="radio" name="dest" value="recycle" ${S.dest==="recycle"?"checked":""}><span>Move to the Windows Recycle Bin <button class="link" data-open="bin">Open Recycle Bin</button><small>You can restore from the Recycle Bin. Drive space is freed when you empty it.</small></span></label>
+    <label class="${S.dest==="move"?"on":""}" style="${vault?"":"cursor:default;opacity:.85"}"><input type="radio" name="dest" value="move" ${S.dest==="move"?"checked":""} ${vault?"":"disabled"}><span>Move to a holding folder ${vault?'<button class="link" data-open="vault">Open in File Explorer</button>':'<span class="pill">Not set</span>'}<small>${vault?`Files aren't deleted right away; they're gathered in <span class="num">${H(vault)}</span>. This doesn't free space.`:"Files aren't deleted right away; they're gathered in a folder you choose. To use this, set the location and create the folder first."}</small></span></label>
+    ${o.vaultEdit?vaultForm():`<div><button class="btn small" id="vault-edit">${vault?"Change the holding folder location":"Set and create a holding folder"}</button></div>`}
+  </div></section>
+  <section class="dsec"><h3>Drive space (estimate)</h3><div class="drives">${drives.map(d=>driveBlock(d,true)).join("")}</div>${driveLegend()}
+    <div class="note">The amount in the Recycle Bin is the actual value read from the Windows Recycle Bin. “Once emptied” is an estimate of the space after emptying it.</div></section>
+  <section class="dsec"><h3>Decision log <span class="pill num">${P(S.judgments.length,"item")}</span></h3>
+    ${S.judgments.length?S.judgments.map((j,i)=>{const g=byId(j.gid);return `<div class="qrow">${row(g.files[0]," "+MARK(g.type)+` <span class="pill">${j.what}</span>`)}<button class="btn small ghost" data-undo="${i}">Undo</button></div>`}).join("")+'<div class="note">Undoing returns the group to the duplicate list.</div>':'<p style="color:var(--muted);margin:0">Groups you mark “Keep as is” are recorded here. You can undo them later.</p>'}
+  </section>
+  <section class="dsec"><h3>Clean-up history <span class="pill num">Total ${gb(movedTotal())}</span></h3>
+    ${S.history.length?`<table class="hist num"><tr><th>Date</th><th>Items</th><th>Size</th><th>Destination</th><th></th></tr>${S.history.map((h,i)=>`<tr><td>${h.date}</td><td>${P(h.count,"item")}</td><td>${gb(h.size)}</td><td>${h.dest==="recycle"?"Recycle Bin":"Holding folder"} <button class="link" data-open="${h.dest==="recycle"?"bin":"vault"}">Open</button></td><td><button class="link" data-hist="${i}">Moved files</button></td></tr>`).join("")}</table><div class="note">To restore, take the files back out of the Recycle Bin (or holding folder). This app can't undo it.</div>`:'<p style="color:var(--muted);margin:0">Nothing has been cleaned up yet.</p>'}
+  </section></div></aside></div>`;
+}
+function approveModal(){
+  const all=openOf("exact"),ready=all.filter(groupReady),blocked=all.length-ready.length;
+  const room=LIMIT_EXACT-S.queue.filter(q=>q.type==="exact").length;
+  let cnt=0;const take=[];ready.forEach(g=>{const n=trashOf(g).length;if(cnt+n<=room){cnt+=n;take.push(g)}});
+  const man=take.filter(g=>g.manual).length,showList=!!S.overlay.showList;
+  const per=ranked().map(fo=>({fo,n:0,size:0,same:0,cross:0}));
+  take.forEach(g=>{const k=g.files.find(f=>f.id===g.keep);trashOf(g).forEach(f=>{const x=per.find(p=>p.fo.id===f.root);x.n++;x.size+=f.size;if(f.root===k.root)x.same++;else x.cross++})});
+  const maxN=Math.max(...per.map(x=>x.n),1);
+  const top=per.find(x=>x.fo.rank===1&&x.cross);
+  const chip=f=>`<span class="fchip">${H(folderOf(f).name)}</span>`;
+  const grow=g=>{const k=g.files.find(f=>f.id===g.keep),t=trashOf(g);
+    return `<div class="agrp"><div class="agrp-k">${thumb(k.hue,k.name)}<div class="r-main"><div class="r-name"><span class="pill keep" style="margin-right:6px">Keep</span>${H(k.name)}</div><div class="r-path">${chip(k)} ${H(k.dir)}</div></div>${g.manual?'<span class="pill manual">Chosen manually</span>':""}</div>
+      <div class="agrp-t">${t.map(f=>`<div class="r-path" style="font-size:12px"><span class="pill trash" style="margin-right:6px">Clean up</span>${chip(f)} ${H(f.dir)}\\${H(f.name)}<span class="num" style="margin-left:6px;color:var(--muted)">${gb(f.size)}</span>${f.root===k.root?'<span class="pill" style="margin-left:6px;font-size:10px">Same folder</span>':""}</div>`).join("")}</div></div>`};
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Review rule and approve"><div class="m-h"><h2>${SAME}Review rule and approve</h2><p>Approving adds the files to clean up to the cleanup list. No files are changed yet.</p></div>
+  <div class="m-b">
+    <div class="h3" style="margin-top:0">Keep rule</div>
+    <div class="rulebox" style="margin:0 0 14px"><span>${ruleHtml()}</span><span style="flex:1"></span><button class="link" id="edit-rule2">Change rule</button></div>
+    <p class="bigline num"><b>${P(take.length,"group")} · ${P(cnt,"video")} · ${gb(sizeOf(take))}</b> will be cleaned up. <span style="color:var(--muted)">Every group keeps one video.</span></p>
+    <div class="h3">Videos cleaned up from each folder</div>
+    <div class="fcount">${per.map(x=>`<div class="fc-r"><span class="pf"><span class="fico" aria-hidden="true"></span><span>${H(x.fo.name)}<small>Priority ${x.fo.rank} · ${x.fo.drive}</small></span></span>
+      <span class="hbar"><i style="width:${x.n/maxN*100}%;background:var(--trash)"></i></span>
+      <span class="num fc-n">${x.n?`${P(x.n,"video")} · ${gb(x.size)}`:"0 videos"}${x.same?`<small>${x.same} of them ${x.same===1?"is a duplicate":"are duplicates"} within the same folder</small>`:""}</span></div>`).join("")}</div>
+    <div class="hint" style="font-size:12px;color:var(--faint);margin-top:6px">“Within the same folder” means the same video is in one folder more than once. One copy stays, so no video disappears from that folder.</div>
+    ${top?`<div class="note warn">Because the modified date is checked first, files in “${H(top.fo.name)}” (priority 1) also lose out to files in other folders, and ${P(top.cross,"video")} will be cleaned up from it. <button class="link" id="edit-rule3">Review the order</button></div>`:""}
+    ${man?`<div class="note ok">The ${P(man,"group")} you re-selected ${ARE(man)} approved with your selection.</div>`:""}
+    ${take.length<ready.length?`<div class="note warn">Up to ${LIMIT_EXACT} items can be approved at a time, so the remaining ${P(ready.length-take.length,"group")} will be handled next time.</div>`:""}
+    ${blocked?`<div class="note">${P(blocked,"group")} on drives that are not connected ${ARE(blocked)} excluded until you connect them.</div>`:""}
+    <div style="margin-top:12px"><button class="link" id="toggle-list">${showList?"▾ Hide the group list":`▸ View the group list (${P(take.length,"group")} · checking is optional)`}</button></div>
+    ${showList?`<div class="agrps" style="margin-top:8px">${take.map(grow).join("")}</div>`:""}
+  </div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>Go back and choose again</button><button class="btn primary" id="approve-ok" ${take.length?"":"disabled"}>Approve and add to cleanup list</button></div></div></div>`;
+}
+function addModal(){
+  const sel=S.overlay.pick;
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Add folder"><div class="m-h"><h2>Add a folder to clean up</h2><p>In the prototype you pick from examples. The app opens the Windows folder picker.</p></div>
+  <div class="m-b"><div class="pick">${EXTRA_FOLDERS.map(c=>{const has=S.folders.some(f=>f.id===c.id);return `<button data-pick="${c.id}" aria-pressed="${sel===c.id}" ${has?"disabled":""}><span class="fico" aria-hidden="true"></span><span>${H(c.path)}${has?" (added)":""}</span></button>`}).join("")}</div>
+  <div class="note">Analysis starts automatically once added. It gets the lowest priority (${S.folders.length+1}), which you can change later. Original files are not changed.</div></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="add-ok" ${sel?"":"disabled"}>Add and start analysis</button></div></div></div>`;
+}
+function removeModal(){
+  const f=S.folders.find(x=>x.id===S.overlay.id);
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Remove from clean-up"><div class="m-h"><h2>Remove “${H(f.name)}” from clean-up?</h2><p>${H(f.path)}</p></div>
+  <div class="m-b"><div class="note">The folder and its files are <b>not deleted</b>. They just stop showing in this app.</div><div class="note">Duplicate groups involving this folder leave the list, and its files leave the cleanup list. The folder's information is kept for the number of days set for “Folders” in Settings.</div></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>Cancel</button><button class="btn danger" id="remove-ok">Remove from clean-up</button></div></div></div>`;
+}
+function settingsModal(){
+  const o=S.overlay;o.order=o.order||ranked().map(f=>f.id);o.criteria=o.criteria||S.criteria.slice();o.dateDir=o.dateDir||S.dateDir;
+  o.ret=o.ret||{...S.retention};
+  const R=o.ret;
+  const retRow=(k,label,sub)=>{const unl=R[k]==="";return `<span>${label}<small>${sub}</small></span><span class="retc"><select data-retmode="${k}" aria-label="How long to keep information about ${label.toLowerCase()}"><option value="days" ${unl?"":"selected"}>Set days</option><option value="unl" ${unl?"selected":""}>No limit</option></select><span class="unit ${unl?"off":""}"><input type="text" inputmode="numeric" id="ret-${k}" data-ret="${k}" value="${unl?"":H(R[k])}" ${unl?"disabled":""} aria-label="Days to keep information about ${label.toLowerCase()}"><span>days</span></span></span>`};
+  const critLbl=c=>c==="folder"?"Higher-priority folder":`<select id="date-dir" aria-label="Modified date direction" style="padding:4px 6px" draggable="false"><option value="old" ${o.dateDir==="old"?"selected":""}>Older modified date</option><option value="new" ${o.dateDir==="new"?"selected":""}>Newer modified date</option></select>`;
+  const rules=`<div class="fld">Order of checks (drag to reorder; checked from the top)
+      <div class="order dnd" data-dnd="criteria">${o.criteria.map((c,i)=>`<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="Check ${i+1}"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${"①②"[i]}</b><span></span><span>${critLbl(c)}</span><span></span></div>`).join("")}</div></div>
+    <div class="fld">Folder priority (drag to reorder; higher ones are kept first)
+      <div class="order dnd" data-dnd="folders">${o.order.map((id,i)=>{const f=S.folders.find(x=>x.id===id);return `<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="${H(f.name)}, priority ${i+1}"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${i+1}</b><span class="fico" aria-hidden="true"></span><span style="min-width:0">${H(f.name)}<small>${H(f.path)}</small></span><span></span></div>`}).join("")}</div></div>`;
+  if(o.scope==="rule")return ruleModal(o,rules);
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Settings"><div class="m-h"><h2>Settings</h2></div><div class="m-b form">
+  <fieldset><legend>Which identical file to keep</legend>
+    ${rules}
+    <span class="hint">With the keyboard, select an item and move it with Alt + ↑↓. Groups where you chose the one to keep yourself keep that choice even if you change the rule.</span>
+  </fieldset>
+  <fieldset><legend>Startup check</legend>
+    <label class="switch"><input type="radio" name="autocheck" value="auto" ${S.autoCheck?"checked":""}><span>Check automatically at startup (recommended)<small>Checks your folders for added, removed or changed files and analyzes only the new ones.</small></span></label>
+    <label class="switch"><input type="radio" name="autocheck" value="manual" ${S.autoCheck?"":"checked"}><span>Check manually<small>Nothing is checked at startup. Press “Check for changes” on the left to check all folders at once. Useful to keep startup light with large HDDs.</small></span></label>
+  </fieldset>
+  <fieldset><legend>Default clean-up destination</legend>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="radio" name="sdest" value="recycle" ${S.dest==="recycle"?"checked":""}>Windows Recycle Bin</label>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="radio" name="sdest" value="move" ${S.dest==="move"?"checked":""}>Move to a holding folder</label>
+    <label for="set-q">Holding folder (not used if blank; choose a place outside the folders to clean up)<input type="text" id="set-q" value="${H(S.quarantine)}" placeholder="e.g. D:\\Duplicates"></label>
+  </fieldset>
+  <fieldset><legend>How long to keep information</legend>
+    <span class="hint">How long this app keeps information (analysis results and decisions) about things that can no longer be found. This doesn't delete original files.</span>
+    <div class="ret">
+      ${retRow("file","Files","Files that were moved or deleted and can no longer be found")}
+      ${retRow("folder","Folders","Folders removed from clean-up or no longer found")}
+      ${retRow("drive","Drives","Drives that are not connected (external HDDs, etc.)")}
+    </div>
+  </fieldset>
+  <fieldset><legend>Display language</legend>
+    <label class="switch"><input type="radio" name="uilang" value="ja"><span>日本語 (Japanese)</span></label>
+    <label class="switch"><input type="radio" name="uilang" value="en" checked><span>English</span></label>
+    <span class="hint">Takes effect after you restart the app.</span>
+  </fieldset>
+  <fieldset><legend>Other</legend>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="checkbox" id="set-dev">Show detailed technical information</label>
+    <ul class="devlist"><li>File IDs and hash values (why files were judged identical)</li><li>The numbers behind “very similar” (such as how many scenes matched)</li><li>Analysis state and the kind of error when something fails</li><li>The AI model in use and its status</li></ul>
+    <span class="hint">Not needed for normal clean-up. Use it when looking into problems.</span>
+  </fieldset></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="set-save">Save</button></div></div></div>`;
+}
+/* Only the keep rule, with how many files each folder would give up under it. */
+function ruleModal(o,rules){
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="Keep rule"><div class="m-h"><h2>${SAME}Keep rule</h2><p>How to choose which file to keep when there are several identical files. Checked from the top.</p></div><div class="m-b form">
+    ${rules}
+    <div class="fld">Videos this rule cleans up (groups awaiting approval)<div class="preview">${rulePreview(o)}</div></div>
+    <span class="hint">The numbers change as you drag to reorder. With the keyboard, use Alt + ↑↓.</span></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" id="rule-cancel">${o.back?"Go back without changes":"Cancel"}</button><button class="btn primary" id="rule-save">Use this rule</button></div></div></div>`;
+}
+function rulePreview(o){
+  const rank={};o.order.forEach((id,i)=>rank[id]=i+1);
+  const rk=f=>rank[f.root]||99;
+  const pick=fs=>{let c=fs.slice();for(const k of o.criteria){if(c.length<2)break;if(k==="folder"){const b=Math.min(...c.map(rk));c=c.filter(f=>rk(f)===b)}else{c.sort((a,b)=>o.dateDir==="new"?b.date.localeCompare(a.date):a.date.localeCompare(b.date));c=[c[0]]}}return c[0]};
+  const gs=openOf("exact");
+  if(!gs.length)return '<span style="color:var(--muted);font-size:13px">No groups are awaiting approval right now. This rule is used from the next groups found.</span>';
+  const now={},nxt={};
+  gs.forEach(g=>{const kx=g.manual?g.keep:pick(g.files).id;g.files.forEach(f=>{if(f.id!==g.keep)now[f.root]=(now[f.root]||0)+1;if(f.id!==kx)nxt[f.root]=(nxt[f.root]||0)+1})});
+  const max=Math.max(1,...Object.values(nxt));
+  return o.order.map(id=>{const f=S.folders.find(x=>x.id===id),n=nxt[id]||0,d=n-(now[id]||0);
+    return `<div class="pv-r"><span class="pf"><span class="fico" aria-hidden="true"></span><span>${H(f.name)}<small>Priority ${rank[id]}</small></span></span><span class="hbar"><i style="width:${n/max*100}%;background:var(--trash)"></i></span><span class="num" style="text-align:right">Clean up ${P(n,"video")}${d?`<small style="color:var(--accent-hi)">${d>0?"+":""}${d} vs. the current rule</small>`:'<small style="color:var(--faint)">Same as the current rule</small>'}</span></div>`}).join("")
+    +'<div style="font-size:12px;color:var(--faint)">Every group keeps one video. Groups you re-selected stay as they are even if you change the rule.</div>';
+}
+function bulkModal(){
+  const gs=clearGroups(),room=LIMIT-S.queue.filter(q=>q.type!=="exact").length;
+  let cnt=0;const take=[];gs.forEach(g=>{const n=trashOf(g).length;if(cnt+n<=room){cnt+=n;take.push(g)}});
+  const grow=g=>{const k=g.files.find(f=>f.id===g.keep);
+    return `<div class="agrp"><div class="agrp-k">${thumb(k.hue,k.name)}<div class="r-main"><div class="r-name"><span class="pill keep" style="margin-right:6px">Keep</span>${H(k.name)}</div><div class="r-path num">${facts(k)}</div></div><span class="pill info num">${g.match}% match</span></div>
+      <div class="agrp-t">${trashOf(g).map(f=>`<div class="r-path num" style="font-size:12px"><span class="pill trash" style="margin-right:6px">Clean up</span>${H(f.name)} · ${facts(f)}</div>`).join("")}</div></div>`};
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Approve clear groups together"><div class="m-h"><h2>${LIKE}Approve clear groups together</h2><p>Approving adds the files to clean up to the cleanup list. No files are changed yet.</p></div>
+  <div class="m-b">
+    <div class="h3" style="margin-top:0">Groups that meet all of these</div>
+    <ul class="crit"><li>95%+ match</li><li>Lengths differ by 1 second or less (no scenes in only one)</li><li>The one to keep has the same or higher resolution and bitrate than the others</li></ul>
+    <p class="bigline num"><b>${P(take.length,"group")} · ${P(cnt,"video")} · ${gb(sizeOf(take))}</b> will be cleaned up.</p>
+    ${take.length<gs.length?`<div class="note warn">Very similar videos are limited to ${LIMIT} per run, so the remaining ${P(gs.length-take.length,"group")} will be handled next time.</div>`:""}
+    <div class="agrps">${take.map(grow).join("")}</div>
+    <div class="note">If a group concerns you, use “Go back and choose again” to return to the list and compare one group at a time.</div>
+  </div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>Go back and choose again</button><button class="btn primary" id="bulk-ok" ${take.length?"":"disabled"}>Approve and add to cleanup list</button></div></div></div>`;
+}
+function runModal(){
+  const o=S.overlay,steps=["Review contents","Check","Run"];
+  const destTxt=S.dest==="recycle"?"Move to the Windows Recycle Bin":`Move to the holding folder (${S.quarantine})`;
+  const head=`<div class="m-h"><h2>Run the cleanup list</h2><div class="wsteps">${steps.map((s,i)=>`<span class="${i===o.step?"on":i<o.step?"ok":""}">${i+1}. ${s}</span>`).join("")}</div></div>`;
+  const groups={};S.queue.forEach(q=>{(groups[q.gid]=groups[q.gid]||{type:q.type,keep:q.keep,items:[]}).items.push(q)});
+  const G=Object.entries(groups);
+  if(o.step<2){
+    const body=G.map(([gid,x])=>`<div class="wgroup"><div class="wgroup-h">${MARK(x.type)}<span>${TYPE(x.type)}</span><span class="sp"></span>${x.type==="exact"?(byId(gid).manual?'<span class="pill manual">Chosen manually · approved</span>':'<span class="pill keep">Approved by rule</span>'):x.items[0].approved?'<span class="pill keep">Approved together</span>':""}</div>
+      ${x.keep?`<div class="wrow"><span></span><span class="pill keep role">Keep</span>${row(x.keep)}</div>`:""}
+      ${x.items.map(q=>`<div class="wrow">${o.step===1&&needsCheck(q)?`<input type="checkbox" data-chk="${q.file.id}" ${o.checked[q.file.id]?"checked":""} aria-label="Confirm cleaning up ${H(q.file.name)}">`:"<span></span>"}<span class="pill trash role">Clean up</span>${row(q.file)}</div>`).join("")}</div>`).join("");
+    const need=S.queue.filter(needsCheck),done=need.filter(q=>o.checked[q.file.id]).length;
+    const intro=o.step===0?`<div class="note">This is the check before running. No files have been changed yet. Destination: <b>${H(destTxt)}</b></div><div class="note warn">This app has no “undo”. ${S.dest==="recycle"?"You can restore from the Windows Recycle Bin.":"You can restore from the holding folder."}</div>`:`<div class="note">Check each very similar video, video to double-check and individually chosen file (<span class="num">${done}/${need.length}</span>). Identical files and groups approved together are already approved.</div>`;
+    const ok=o.step===0||done===need.length;
+    return `<div class="scrim"><div class="modal" role="dialog" aria-label="Run the cleanup list">${head}<div class="m-b">${intro}${body}</div><div class="m-f"><span class="num">${P(S.queue.length,"item")} · ${gb(qSize())}</span><span class="sp"></span><button class="btn" data-back>${o.step===0?"Cancel":"Back"}</button><button class="btn primary" id="w-next" ${ok?"":"disabled"}>${o.step===0?"I've reviewed the contents":"Done checking"}</button></div></div></div>`;
+  }
+  if(!o.running)return `<div class="scrim"><div class="modal" role="dialog" aria-label="Final check">${head}<div class="m-b"><p style="font-size:18px;margin:0 0 8px">${H(destTxt)}: <b class="num">${P(S.queue.length,"item")} (${gb(qSize())})</b></p><div class="note">Items are processed one at a time. Identical files are checked again for identical content just before processing. If you stop partway, processed files are not restored automatically.</div>${S.dest==="recycle"?'<div class="note">Drive space is freed when you empty the Recycle Bin.</div>':""}</div><div class="m-f"><span class="sp"></span><button class="btn" data-back>Back</button><button class="btn primary" id="w-exec">${S.dest==="recycle"?"Move to Recycle Bin":"Move to holding folder"}</button></div></div></div>`;
+  const n=o.progress||0;
+  const mark=q=>o.fails[q.file.id]?' <span class="pill r-tag" style="color:var(--danger);border-color:rgba(228,98,91,.5)">Not moved</span>':' <span class="pill keep r-tag">Done</span>';
+  if(!o.finished)return `<div class="scrim"><div class="modal" role="dialog" aria-label="Running">${head}<div class="m-b"><p class="num">Processing… ${n} of ${P(S.queue.length,"item")}</p><div class="bar"><i style="width:${n/S.queue.length*100}%"></i></div><div class="progress-list" style="margin-top:10px">${S.queue.slice(0,n).slice(-6).map(q=>row(q.file,mark(q))).join("")}</div></div><div class="m-f"><span class="sp"></span><button class="btn" id="w-stop">Stop the rest</button></div></div></div>`;
+  const rec=o.dest==="recycle",F=o.failed||[];
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="Done">${head}<div class="m-b"><div style="text-align:center;padding:16px 10px"><div class="bigstat num">${gb(o.freedNow)}</div><p style="font-size:16px;margin:6px 0">${rec?"moved to the Recycle Bin":"moved to the holding folder"} (<span class="num">${P(o.movedNow,"item")}</span>)</p>
+    <p style="color:var(--muted);margin:0 0 12px">${rec?"Emptying the Recycle Bin frees up this much drive space.":"Check what's in the holding folder, then delete what you don't need."} <span class="num">${P(visible().filter(g=>g.status==="open").length,"group")}</span> left.</p>
+    <button class="btn" data-open="${rec?"bin":"vault"}">${rec?"Open Recycle Bin":"Open holding folder"}</button></div>
+    ${F.length?`<div class="note warn"><b class="num">${P(F.length,"item")}</b> couldn't be moved. ${F.length===1?"It's":"They're"} back in the cleanup list, so you can fix the cause and run again.</div>${F.map(q=>`<div class="qrow">${row(q.file)}<span style="font-size:12px;color:#E9C58C;padding-left:8px;max-width:220px">${H(q.reason)}</span></div>`).join("")}`:""}
+  </div><div class="m-f"><span class="sp"></span><button class="btn primary" id="w-done">Keep cleaning up</button></div></div></div>`;
+}
+function failedDrawer(){
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="Files that couldn't be analyzed"><div class="drawer-h"><b>Files that couldn't be analyzed</b><span class="pill num">${S.failed.length}</span><span class="sp"></span><button class="btn" data-close>Close</button></div><div class="drawer-b"><div class="dsec">
+    <div class="note warn">These files haven't been checked for duplicates. Fix the cause, then press “Analyze again”.</div>
+    ${S.failed.length?S.failed.map((x,i)=>`<div class="qrow"><div class="row">${thumb(0,x.name)}<div class="r-main"><div class="r-name">${H(x.name)}</div><div class="r-path">${H(x.dir)}</div><div style="font-size:12px;color:#E9C58C">${H(x.reason)}</div></div><div></div></div><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn small ghost" data-reveal="${i}">Show in File Explorer</button><button class="btn small" data-retry="${i}">Analyze again</button></span></div>`).join(""):'<p style="color:var(--muted)">No files failed to analyze.</p>'}
+  </div></div></aside></div>`;
+}
+function findFile(id){for(const g of S.groups)for(const f of g.files)if(f.id===id)return {f,g};return null}
+function playerModal(){
+  const {f}=findFile(S.overlay.fid),bad=f.name.toLowerCase().endsWith(".mkv");
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="Play"><div class="m-h"><h2>${H(f.name)}</h2><p>${H(f.dir)} · ${facts(f)}</p></div><div class="m-b">
+    ${bad?`<div class="vbox"><div><b>This format can't be played in this app</b><p>To play this video (HEVC / H.265), install “HEVC Video Extensions” (Microsoft Store) in Windows.</p><div class="actions" style="justify-content:center"><button class="btn primary" data-fm2="ext">Open in the default player</button><button class="btn" data-fm2="store">About the extension</button></div></div></div>`
+    :`<div class="thumb" style="width:100%;height:auto;aspect-ratio:16/9;background:linear-gradient(135deg,hsl(${f.hue} 45% 42%),hsl(${(f.hue+40)%360} 40% 22%))" role="img" aria-label="Playback of ${H(f.name)}"></div><div class="scrub"><button class="btn small" id="pplay">▶ Play</button><div class="track" aria-hidden="true"><i id="pscrub" style="width:12%"></i></div><span class="num" style="font-size:12px;color:var(--muted)">${dur(f.dur*.12)} / ${dur(f.dur)}</span></div>`}
+  </div><div class="m-f"><button class="btn ghost" data-fm2="ext">Open in the default player</button><button class="btn ghost" data-fm2="reveal" data-fid="${f.id}">Show in File Explorer</button><span class="sp"></span><button class="btn" id="player-close">Close</button></div></div></div>`;
+}
+function prioModal(){
+  const o=S.overlay;
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="Folder priority"><div class="m-h"><h2>${SAME}Identical videos were found</h2><p>When the same video is in several folders, which folder's copy should be kept? Higher ones are kept first. Drag to reorder.</p></div>
+  <div class="m-b form"><div class="order dnd" data-dnd="folders">${o.order.map((id,i)=>{const f=S.folders.find(x=>x.id===id);return `<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="${H(f.name)}, priority ${i+1}"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${i+1}</b><span class="fico" aria-hidden="true"></span><span style="min-width:0">${H(f.name)}<small>${H(f.path)}</small></span><span></span></div>`}).join("")}</div>
+  <span class="hint">When the priority is the same, the one with the older modified date is kept. You can change this anytime in Settings or on the left.</span></div>
+  <div class="m-f"><span class="sp"></span><button class="btn primary" id="prio-ok">Use this order</button></div></div></div>`;
+}
+function closeFileMenu(){const m=$("#filemenu");if(m)m.remove()}
+function openFileMenu(b){
+  closeFileMenu();
+  const hit=findFile(b.dataset.filemenu);if(!hit)return;const f=hit.f,ctx=b.dataset.ctx;
+  const inQ=S.queue.some(q=>q.file.id===f.id),inPair=S.queue.some(q=>q.keep&&q.keep.id===f.id);
+  const m=document.createElement("div");m.className="menu";m.id="filemenu";m.style.position="fixed";m.style.zIndex="70";
+  m.innerHTML=`<button data-fm="play">Play<small>Plays it in this app</small></button><button data-fm="reveal">Show in File Explorer<small>Opens the folder with this file selected</small></button>${ctx==="files"?`<hr><button data-fm="queue" ${inQ||inPair||!fileReady(f)?"disabled":""}>Add to cleanup list<small>${inQ?"It's already in the list":inPair?"This file is marked “Keep” in a duplicate group":!fileReady(f)?"The drive is not connected":"Clean it up as an unneeded file"}</small></button>`:""}`;
+  document.body.appendChild(m);
+  const r=b.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
+  m.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+"px";
+  m.style.top=(r.bottom+4+h>window.innerHeight-8?Math.max(8,r.top-h-4):r.bottom+4)+"px";
+  m.querySelector('[data-fm="play"]').onclick=()=>{closeFileMenu();S.overlay={kind:"player",fid:f.id,prev:S.overlay};renderOverlay()};
+  m.querySelector('[data-fm="reveal"]').onclick=()=>{closeFileMenu();toast(`Opens ${f.dir} in File Explorer with “${f.name}” selected (skipped in the prototype)`)};
+  const qb=m.querySelector('[data-fm="queue"]');if(qb)qb.onclick=()=>{closeFileMenu();enqueueSingle(f);renderOverlay()};
+}
+function toggleOffline(){
+  if(!S.folders.length){toast("Add a folder first");return}
+  const f=S.folders.find(x=>x.id==="C");if(!f)return;
+  f.offline=!f.offline;
+  if(f.offline){[...new Set(S.queue.filter(q=>q.file.root==="C").map(q=>q.gid))].forEach(gid=>{S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open"});toast(`“${f.name}” (${f.drive}) was disconnected. Groups on this drive can be cleaned up once it's connected`)}
+  else toast(`“${f.name}” (${f.drive}) is connected`);
+  $("#proto-offline").setAttribute("aria-pressed",f.offline);render();
+}
+let pT=null;
+function playModal(){const b=$("#pplay");if(pT){clearInterval(pT);pT=null;b.textContent="▶ Play";return}b.textContent="❚❚ Pause";let w=12;pT=setInterval(()=>{w=w>=100?0:w+1;const x=$("#pscrub");if(!x){clearInterval(pT);pT=null;return}x.style.width=w+"%"},150)}
+function listOrder(){return listedGroups()}
+document.addEventListener("keydown",e=>{
+  if(!S||S.overlay||S.state==="first"||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.closest&&e.target.closest("input,select,textarea"))return;
+  if(e.key==="Enter"&&e.target.closest&&e.target.closest("button,[role=button],.fold"))return;
+  const list=listOrder(),i=list.findIndex(g=>g.id===S.sel),k=e.key.toLowerCase();
+  if(k==="j"||k==="k"){e.preventDefault();const n=list[k==="j"?Math.min(list.length-1,i+1):Math.max(0,i-1)];if(n){S.sel=n.id;render();const el=$(`.group[data-g="${n.id}"]`);if(el)el.scrollIntoView({block:"nearest"})}return}
+  const g=byId(S.sel);if(!g||g.status!=="open")return;
+  if(/^[1-9]$/.test(e.key)){const f=g.files[+e.key-1];if(f){g.keep=f.id;g.manual=g.type==="exact"?f.id!==autoKeep(g):true;render()}}
+  else if(e.key==="Enter"&&g.type!=="exact"){e.preventDefault();const btn=$(`[data-enq="${g.id}"]`);if(btn&&!btn.disabled)btn.click()}
+  else if(k==="n"){const btn=$(`[data-skip="${g.id}"]`);if(btn)btn.click()}
+});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-filemenu]");if(b){e.preventDefault();e.stopPropagation();openFileMenu(b);return}if(!(e.target.closest&&e.target.closest("#filemenu")))closeFileMenu()},true);
+/* ---------- events ---------- */
+const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+function openKind(kind,extra){S.overlay={kind,...(extra||{})};renderOverlay()}
+function bindOpeners(root){
+  root.querySelectorAll("[data-open]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();toast(b.dataset.open==="bin"?"Opens the Windows Recycle Bin (skipped in the prototype)":S.quarantine?`Opens ${S.quarantine} in File Explorer (skipped in the prototype)`:"No holding folder is set yet. Set its location in the Clean-up panel")});
+}
+function bindScreen(){
+  on("#first-add",()=>openKind("add",{first:true}));
+  on("#add-folder",()=>openKind("add"));on("#add-folder2",()=>openKind("add"));
+  on("#approve",()=>openKind("approve"));on("#go-run",openRun);on("#run",openRun);
+  on("#go-sim",()=>{const g=openOf("similar")[0]||openOf("check")[0];S.sel=g.id;S.open[g.type]=true;render()});
+  on("#go-first",()=>{S.sel=visible().find(g=>g.status==="open").id;render()});
+  on("#edit-rule4",()=>openKind("settings",{scope:"rule"}));
+  on("#peek",()=>{S.peek=!S.peek;render()});
+  on("#bulk",()=>openKind("bulk"));
+  const so=$("#sort");if(so)so.onchange=()=>{S.sort=so.value;S.sel=null;render()};
+  on("#goal-edit",()=>{S.targetEdit=!S.targetEdit;render();const i=$("#goal-gb");if(i)i.focus()});
+  on("#goal-cancel",()=>{S.targetEdit=false;render()});
+  on("#goal-clear",()=>{S.target=null;S.targetEdit=false;render()});
+  on("#goal-ok",()=>{const v=parseInt(($("#goal-gb").value||"").replace(/[^0-9]/g,""),10);if(!v){toast("Enter the space to free in GB");return}S.target={drive:$("#goal-drive").value,size:v};S.targetEdit=false;S.sort="size";S.sel=null;toast(`Sorted to reach the goal “${goalLabel()}”`);render()});
+  on("#hint-close",()=>{S0.hint=false;render()});on("#hint-open",()=>{S0.hint=true;render()});
+  on("#show-analysis",()=>{S.detail="scan";render()});on("#show-check",()=>{S.detail="check";render()});on("#back-list",()=>{S.detail=null;render()});
+  on("#open-failed",()=>openKind("failed"));on("#open-failed2",()=>openKind("failed"));
+  on("#check-now",()=>startCheck(false));on("#check-now2",()=>startCheck(false));
+  on("#notify",()=>toast("You'll get a Windows notification when the analysis is done"));
+  ["#open-cleanup","#open-cleanup2","#open-cleanup3"].forEach(id=>on(id,()=>openKind("cleanup")));
+  on("#open-files2",()=>openKind("files"));
+  on("#play",playSync);
+  bindOpeners($("#screen"));
+  $$("[data-toggle]").forEach(b=>b.onclick=()=>{S.open[b.dataset.toggle]=!S.open[b.dataset.toggle];render()});
+  $$(".group[data-g]").forEach(el=>{el.onclick=()=>{S.sel=el.dataset.g;render()};el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();el.click()}}});
+  $$('.detail input[type=radio]').forEach(r=>r.onchange=()=>{const g=byId(S.sel);g.keep=r.value;g.manual=g.type==="exact"?r.value!==autoKeep(g):true;render()});
+  $$("[data-reset]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.reset);g.manual=false;g.keep=autoKeep(g);render()});
+  $$("[data-enq]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.enq);if(!enqueue(g)){toast(`The cleanup list is limited to ${LIMIT} items per run. Run it first`);return}const nx=visible().find(x=>x.status==="open"&&x.type!=="exact");S.sel=nx?nx.id:null;toast("Added to the cleanup list. Showing the next group");render()});
+  $$("#screen [data-unq]").forEach(b=>b.onclick=()=>dequeue(b.dataset.unq));
+  $$("[data-skip]").forEach(b=>b.onclick=()=>{byId(b.dataset.skip).status="done";S.judgments.unshift({gid:b.dataset.skip,what:"Keep as is"});S.sel=null;toast("Recorded as “Keep as is”. The files aren't changed (you can undo it in the Clean-up decision log)");render()});
+  $$("[data-fmenu]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.fmenu=S.fmenu===b.dataset.fmenu?null:b.dataset.fmenu;render()});
+  $$("[data-fact]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.id,f=S.folders.find(x=>x.id===id),act=b.dataset.fact;S.fmenu=null;
+    if(act==="up"||act==="down"){const r=ranked(),i=r.findIndex(x=>x.id===id),j=act==="up"?i-1:i+1;[r[i],r[j]]=[r[j],r[i]];r.forEach((x,k)=>x.rank=k+1);reapplyRule();toast(`Set “${f.name}” to priority ${f.rank}. The one to keep was chosen again, except in groups you chose manually`);render();return}
+    if(act==="rescan"){f.scan=3;S.scanTicks=0;render();tickScan();return}
+    if(act==="files"){openKind("files",{folder:id});render();return}
+    if(act==="explorer"){toast(`Opens ${f.path} in File Explorer (skipped in the prototype)`);render();return}
+    if(act==="remove"){S.overlay={kind:"remove",id};render()}});
+  initSplitter();
+  const folds=$$(".side .fold");
+  if(folds.length)bindDnd(folds,(i,j)=>{const r=ranked();const [x]=r.splice(i,1);r.splice(j,0,x);r.forEach((f,k)=>f.rank=k+1);reapplyRule();toast(`Set “${x.name}” to priority ${j+1}. The one to keep was chosen again, except in groups you chose manually`);render()});
+}
+function initSplitter(){
+  const sp=$("#splitter"),body=$(".body");if(!sp)return;
+  const set=w=>{w=Math.max(200,Math.min(480,w));document.documentElement.style.setProperty("--sidew",w+"px");try{localStorage.setItem("lmai-sidew",w)}catch(e){}};
+  sp.onpointerdown=e=>{sp.setPointerCapture(e.pointerId);sp.classList.add("drag");const left=body.getBoundingClientRect().left;
+    sp.onpointermove=m=>set(m.clientX-left);sp.onpointerup=()=>{sp.classList.remove("drag");sp.onpointermove=null}};
+  sp.onkeydown=e=>{const cur=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sidew"))||250;if(e.key==="ArrowLeft"){set(cur-20);e.preventDefault()}if(e.key==="ArrowRight"){set(cur+20);e.preventDefault()}};
+  sp.ondblclick=()=>set(250);
+}
+function bindDnd(items,move){
+  let from=null;
+  items.forEach(it=>{
+    const i=+it.dataset.i;
+    it.addEventListener("dragstart",e=>{from=i;it.classList.add("dragging");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",String(i))}catch(_){}});
+    it.addEventListener("dragend",()=>{it.classList.remove("dragging");items.forEach(x=>x.classList.remove("over-top","over-bottom"))});
+    it.addEventListener("dragover",e=>{if(from===null)return;e.preventDefault();const r=it.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;items.forEach(x=>x.classList.remove("over-top","over-bottom"));it.classList.add(top?"over-top":"over-bottom")});
+    it.addEventListener("drop",e=>{e.preventDefault();if(from===null)return;const r=it.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;let to=top?i:i+1;if(from<to)to--;const f=from;from=null;if(to!==f)move(f,to)});
+    it.addEventListener("keydown",e=>{if(e.altKey&&(e.key==="ArrowUp"||e.key==="ArrowDown")){e.preventDefault();const to=i+(e.key==="ArrowUp"?-1:1);if(to>=0&&to<items.length)move(i,to)}});
+  });
+}
+function openRun(){S.overlay={kind:"run",step:0,checked:{},dest:S.dest};renderOverlay()}
+function bindOverlay(){
+  const ov=$("#overlay");
+  ov.querySelectorAll("[data-close]").forEach(el=>el.addEventListener("click",e=>{if(e.target===el){S.overlay=S.overlay&&S.overlay.kind==="player"?(S.overlay.prev||null):null;render()}}));
+  ov.querySelectorAll("[data-back]").forEach(el=>el.onclick=()=>{if(S.overlay.step===0){S.overlay=null;render();return}S.overlay.step=S.overlay.step===2&&!S.queue.some(needsCheck)?0:S.overlay.step-1;renderOverlay()});
+  bindOpeners(ov);
+  ov.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{S.overlay.folder=b.dataset.ff||null;renderOverlay()});
+  ov.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.jump);S.sel=g.id;S.open[g.type]=true;S.overlay=null;render()});
+  ov.querySelectorAll("[data-unq]").forEach(b=>b.onclick=()=>dequeue(b.dataset.unq));
+  ov.querySelectorAll("[data-chk]").forEach(c=>c.onchange=()=>{S.overlay.checked[c.dataset.chk]=c.checked;renderOverlay()});
+  ov.querySelectorAll("input[name=dest]").forEach(r=>r.onchange=()=>{S.dest=r.value;render()});
+  ov.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{S.overlay.pick=b.dataset.pick;renderOverlay()});
+  ov.querySelectorAll("[data-hist]").forEach(b=>b.onclick=()=>toast("Shows the files moved at that time (skipped in the prototype)"));
+  ov.querySelectorAll(".dnd").forEach(list=>bindDnd(list.querySelectorAll(".it"),(i,j)=>{const arr=list.dataset.dnd==="folders"?S.overlay.order:S.overlay.criteria;const [x]=arr.splice(i,1);arr.splice(j,0,x);renderOverlay();const t=$(`#overlay [data-dnd="${list.dataset.dnd}"] .it[data-i="${j}"]`);if(t)t.focus()}));
+  const dd=$("#date-dir");if(dd)dd.onchange=()=>{S.overlay.dateDir=dd.value;if(S.overlay.scope==="rule")renderOverlay()};
+  ov.querySelectorAll("[data-retmode]").forEach(sel=>sel.onchange=()=>{const k=sel.dataset.retmode;S.overlay.ret[k]=sel.value==="unl"?"":(S.overlay.lastRet&&S.overlay.lastRet[k]||"30");renderOverlay()});
+  ov.querySelectorAll("[data-ret]").forEach(inp=>inp.oninput=()=>{inp.value=inp.value.replace(/[^0-9]/g,"");S.overlay.ret[inp.dataset.ret]=inp.value;(S.overlay.lastRet=S.overlay.lastRet||{})[inp.dataset.ret]=inp.value});
+  ov.querySelectorAll("[data-flt]").forEach(b=>b.onclick=()=>{const v=b.dataset.flt||null;S.overlay.flt=S.overlay.flt===v?null:v;renderOverlay()});
+  ov.querySelectorAll("[data-exp]").forEach(r=>{r.onclick=()=>{const x=S.overlay.exp=S.overlay.exp||{};x[r.dataset.exp]=!x[r.dataset.exp];renderOverlay()};r.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();r.click()}}});
+  ov.querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{const j=S.judgments.splice(+b.dataset.undo,1)[0];const g=byId(j.gid);if(g)g.status="open";toast("Undone. The group is back in the duplicate list");render()});
+  ov.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=>{const x=S.failed.splice(+b.dataset.retry,1)[0];toast(`Analyzing “${x.name}” again`);render()});
+  ov.querySelectorAll("[data-reveal]").forEach(b=>b.onclick=()=>{const x=S.failed[+b.dataset.reveal];toast(`Opens ${x.dir} in File Explorer with “${x.name}” selected (skipped in the prototype)`)});
+  ov.querySelectorAll("[data-fm2]").forEach(b=>b.onclick=()=>{const k=b.dataset.fm2;if(k==="ext")toast("Opens in the Windows default player (skipped in the prototype)");else if(k==="store")toast("Opens the extension's page in the Microsoft Store (skipped in the prototype)");else{const {f}=findFile(b.dataset.fid);toast(`Opens ${f.dir} in File Explorer with “${f.name}” selected (skipped in the prototype)`)}});
+  on("#player-close",()=>{S.overlay=S.overlay.prev||null;render()});
+  on("#pplay",playModal);
+  on("#prio-ok",()=>{S.overlay.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});reapplyRule();S.overlay=null;toast("Priority set. The one to keep was chosen in this order");render()});
+  on("#vault-edit",()=>{S.overlay.vaultEdit=true;S.overlay.vaultErr="";S.overlay.vaultDraft=S.quarantine;renderOverlay();const i=$("#vault-path");if(i)i.focus()});
+  on("#vault-cancel",()=>{S.overlay.vaultEdit=false;renderOverlay()});
+  on("#vault-browse",()=>{S.overlay.vaultDraft="D:\\Duplicates";S.overlay.vaultErr="";renderOverlay();toast("The folder picker opens (the prototype filled in an example)")});
+  const vp=$("#vault-path");if(vp)vp.oninput=()=>{S.overlay.vaultDraft=vp.value};
+  on("#vault-ok",()=>{const p=(S.overlay.vaultDraft||"").trim();const err=!p?"Enter a location":vaultError(p);if(err){S.overlay.vaultErr=err;renderOverlay();return}S.quarantine=p.replace(/\\+$/,"");S.overlay.vaultEdit=false;toast(`Created the holding folder “${S.quarantine}”`);render()});
+  on("#edit-rule2",()=>openKind("settings",{scope:"rule",back:"approve"}));on("#edit-rule3",()=>openKind("settings",{scope:"rule",back:"approve"}));
+  on("#rule-cancel",()=>{S.overlay=S.overlay.back?{kind:S.overlay.back}:null;render()});
+  on("#rule-save",()=>{const o=S.overlay;o.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});S.criteria=o.criteria.slice();S.dateDir=o.dateDir;reapplyRule();S.overlay=o.back?{kind:o.back}:null;toast("Rule changed. The one to keep was chosen again, except in groups you chose manually");render()});
+  on("#toggle-list",()=>{S.overlay.showList=!S.overlay.showList;renderOverlay()});
+  on("#approve-ok",approveExact);
+  on("#bulk-ok",()=>{let n=0;clearGroups().forEach(g=>{const room=LIMIT-S.queue.filter(q=>q.type!=="exact").length;if(trashOf(g).length>room)return;if(enqueue(g)){S.queue.forEach(q=>{if(q.gid===g.id)q.approved=true});n++}});S.overlay=null;S.sel=null;toast(`Added ${P(n,"group")} to the cleanup list (no item-by-item check needed when running)`);render()});
+  on("#clear-q",()=>{S.queue.forEach(q=>{const g=byId(q.gid);if(g)g.status="open"});S.queue=[];render()});
+  on("#add-ok",()=>{
+    if(S.overlay.first){S.firstRun=true;S.state="scan";S.scanTicks=0;S.folders=BASE_FOLDERS.map((f,i)=>newFolder(f,i+1,i===0?4:1));S.overlay=null;toast("Added 3 folders (prototype example). Starting analysis");render();tickScan();return}
+    const c=EXTRA_FOLDERS.find(x=>x.id===S.overlay.pick);S.folders.push(newFolder(c,S.folders.length+1,2));S.scanTicks=0;S.overlay=null;toast(`Added “${c.name}”. Starting analysis`);render();tickScan()});
+  on("#remove-ok",()=>{const id=S.overlay.id,f=S.folders.find(x=>x.id===id);S.folders=S.folders.filter(x=>x.id!==id);ranked().forEach((x,k)=>x.rank=k+1);
+    S.queue.filter(q=>q.file.root===id).map(q=>q.gid).forEach(gid=>{S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open"});
+    reapplyRule();S.overlay=null;toast(`Removed “${f.name}” from clean-up. No files were deleted`);render()});
+  on("#set-save",()=>{const vq0=$("#set-q").value.trim(),bad0=vq0&&vaultError(vq0);if(bad0){toast(bad0);return}S.overlay.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});S.quarantine=vq0.replace(/\\+$/,"");S.dest=document.querySelector("input[name=sdest]:checked").value;if(S.dest==="move"&&!S.quarantine){S.dest="recycle";setTimeout(()=>toast("The holding folder is blank, so the destination is set to the Recycle Bin"),50)}
+    S.criteria=S.overlay.criteria.slice();S.dateDir=S.overlay.dateDir;
+    S.autoCheck=S0.autoCheck=document.querySelector("input[name=autocheck]:checked").value==="auto";
+    const R=S.overlay.ret;["file","folder","drive"].forEach(k=>{S.retention[k]=R[k]===""?"":(String(R[k]).replace(/[^0-9]/g,"")||"30")});
+    reapplyRule();S.overlay=null;toast("Settings saved. The one to keep was chosen again, except in groups you chose manually");render()});
+  on("#w-next",()=>{const need=S.queue.some(needsCheck);S.overlay.step=S.overlay.step===0&&!need?2:S.overlay.step+1;renderOverlay()});
+  on("#w-exec",()=>{const q=S.queue;S.overlay.fails={};if(q.length>=5){S.overlay.fails[q[1].file.id]="It was open in another app, so it couldn't be moved";S.overlay.fails[q[3].file.id]="The file changed after the check, so it was stopped"}S.overlay.running=true;S.overlay.progress=0;renderOverlay();stepExec()});
+  on("#w-stop",()=>{S.overlay.stop=true});
+  on("#w-done",()=>{S.overlay=null;const nx=visible().find(g=>g.status==="open");S.sel=nx?nx.id:null;render()});
+}
+function stepExec(){const o=S.overlay;if(!o||o.kind!=="run")return;if(o.stop||o.progress>=S.queue.length){finishRun();return}o.progress++;renderOverlay();setTimeout(stepExec,120)}
+function finishRun(){
+  const o=S.overlay,done=S.queue.slice(0,o.progress),rest=S.queue.slice(o.progress);
+  const failed=done.filter(q=>o.fails[q.file.id]).map(q=>({...q,reason:o.fails[q.file.id]}));
+  const moved=done.filter(q=>!o.fails[q.file.id]);
+  const freedNow=moved.reduce((a,q)=>a+q.file.size,0);
+  const backG=new Set(failed.map(q=>q.gid));
+  new Set(moved.map(q=>q.gid)).forEach(gid=>{if(!backG.has(gid)){const g=byId(gid);if(g)g.status="done"}});
+  rest.forEach(q=>{const g=byId(q.gid);if(g&&!backG.has(q.gid))g.status="open"});
+  if(o.dest==="recycle")moved.forEach(q=>{S.bin[q.file.drive]=(S.bin[q.file.drive]||0)+q.file.size});
+  if(moved.length){const d=new Date(),p=n=>String(n).padStart(2,"0");S.history.unshift({date:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,count:moved.length,size:freedNow,dest:o.dest})}
+  S.queue=failed.map(({reason,...q})=>q);S.prevNew=0;S.peek=false;if(S.state==="return")S.state="found";
+  o.finished=true;o.freedNow=freedNow;o.movedNow=moved.length;o.failed=failed;render();
+}
+/* Hovering a thumbnail plays a few seconds after a short pause (the app plays the video muted from about 10%). */
+let hoverT=null;
+document.addEventListener("mouseover",e=>{
+  const t=e.target.closest&&e.target.closest(".list .thumb,.detail .thumb,.drawer .thumb,.modal .thumb");
+  if(!t||t.classList.contains("playing"))return;
+  clearTimeout(hoverT);hoverT=setTimeout(()=>t.classList.add("playing"),350);
+  t.addEventListener("mouseleave",()=>{clearTimeout(hoverT);t.classList.remove("playing")},{once:true});
+});
+let playT=null;
+function playSync(){const b=$("#play");if(playT){clearInterval(playT);playT=null;b.textContent="▶ Play together";return}b.textContent="❚❚ Pause";let w=12;playT=setInterval(()=>{w=w>=100?12:w+1;const x=$("#scrub");if(!x){clearInterval(playT);playT=null;return}x.style.width=w+"%"},120)}
+let checkT=null;
+const NEWNAMES=["Sports_day_2023 (2).mp4","Kyoto_autumn_leaves_phone.mp4","Fireworks_festival_copy.mp4","Kids_birthday_edit.mp4","IMG_4821.MOV","IMG_4822.MOV","VID_20260920.mp4","Live_concert_01_short.mp4","Trip_compilation_v2.mp4","Screen_recording_0921.mp4","Shichi-Go-San_full.mp4","Graduation_spare.mp4"];
+function startCheck(auto){
+  clearTimeout(checkT);
+  const hasNew=S.groups.some(g=>g.pendingNew);
+  const plan={A:{added:0,changed:0,removed:0},B:{added:hasNew?9:0,changed:hasNew?2:0,removed:0},C:{added:hasNew?3:0,changed:0,removed:hasNew?1:0}};
+  const folders=ranked().filter(f=>!f.offline).map(f=>({id:f.id,name:f.name,path:f.path,drive:f.drive,subs:f.subs,total:f.files,seen:0,state:"wait",plan:plan[f.id]||{added:0,changed:0,removed:0},found:{added:0,changed:0,removed:0},speed:f.drive==="F:"?0.09:0.22}));
+  const files=[];
+  folders.forEach(f=>{for(let i=0;i<f.plan.added+f.plan.changed;i++)files.push({name:NEWNAMES[files.length%NEWNAMES.length],dir:f.path+"\\"+f.subs[i%f.subs.length],size:0.3+((files.length*7)%19)/4,kind:i<f.plan.added?"New":"Changed",stage:0,pct:0})});
+  S.check={phase:"diff",auto,folders,files,log:[],found:[],cur:"",t0:Date.now(),fi:0,totalPend:S.groups.filter(g=>g.pendingNew).length};
+  if(!auto)render();
+  checkT=setTimeout(tickCheck,450);
+}
+function tickCheck(){
+  const c=S.check;if(!c)return;
+  if(c.phase==="diff"){
+    const f=c.folders.find(x=>x.state==="run")||c.folders.find(x=>x.state==="wait");
+    if(!f){c.phase=c.files.length?"analyze":"done"}
+    else{
+      f.state="run";
+      const step=Math.max(1,Math.round(f.total*f.speed*(0.6+Math.random()*0.8)));
+      f.seen=Math.min(f.total,f.seen+step);
+      const sub=f.subs[Math.floor(Math.random()*f.subs.length)];
+      c.cur=`${f.path}\\${sub}\\${["IMG_","VID_","clip_","DSC_"][f.seen%4]}${1000+f.seen}.mp4`;
+      ["added","changed","removed"].forEach(k=>{const want=Math.round(f.plan[k]*f.seen/f.total);while(f.found[k]<want){f.found[k]++;const nm=k==="removed"?"Old_recording_0412.mp4":NEWNAMES[(c.log.length*5)%NEWNAMES.length];c.log.unshift({k,text:`${f.path}\\${sub}\\${nm}`})}});
+      if(f.seen>=f.total)f.state="done";
+    }
+  }
+  if(c.phase==="analyze"){
+    const x=c.files[c.fi];
+    if(!x){c.phase="done"}
+    else{
+      x.pct=Math.min(100,x.pct+(x.size>3?9:22)+Math.random()*8);x.stage=x.pct<35?0:x.pct<70?1:2;
+      if(x.pct>=100){
+        const pend=S.groups.filter(g=>g.pendingNew&&!c.found.includes(g));
+        const want=Math.round(c.totalPend*(c.fi+1)/c.files.length);pend.slice(0,Math.max(0,want-c.found.length)).forEach(g=>c.found.push(g));
+        c.fi++;
+      }
+    }
+  }
+  if(c.phase==="done"){finishCheck();return}
+  if(!S.overlay)render();
+  checkT=setTimeout(tickCheck,550);
+}
+function finishCheck(){
+  const c=S.check,added=c.folders.reduce((a,f)=>a+f.found.added+f.found.changed,0);S.newFiles=added;
+  const fresh=S.groups.filter(g=>g.pendingNew);fresh.forEach(g=>g.pendingNew=false);
+  S.prevNew=fresh.length;S.check=null;S.detail=null;S.lastCheck="just now";
+  if(S.state==="clean"&&fresh.length)S.state="found";
+  toast(added?`Analyzed ${P(added,"new or changed file")} and found ${P(fresh.length,"new duplicate group")}`:"No changes");
+  render();
+}
+function checkProgress(){
+  const c=S.check,tot=c.folders.reduce((a,f)=>a+f.total,0),seen=c.folders.reduce((a,f)=>a+f.seen,0);
+  const dp=tot?seen/tot:1,ap=c.files.length?c.files.reduce((a,x)=>a+x.pct,0)/c.files.length/100:1;
+  return Math.round((c.files.length?dp*0.4+ap*0.6:dp)*100);
+}
+function checkStrip(){
+  const c=S.check;if(!c)return "";
+  const f=c.folders.find(x=>x.state==="run"),x=c.files[c.fi];
+  const txt=c.phase==="diff"?(f?`Checking for changes: <b>${H(f.name)}</b> (${f.seen.toLocaleString()} / ${P(f.total,"video")})`:"Checking for changes"):x?`Analyzing new files: <b>${H(x.name)}</b> (${c.fi+1} / ${c.files.length})`:"";
+  const p=checkProgress();
+  return `<div class="scanstrip" role="status"><span class="pulse" aria-hidden="true"></span><span>${c.auto?"Startup check · ":""}${txt}</span><div class="bar"><i style="width:${p}%"></i></div><span class="num">${p}%</span><span style="flex:1"></span><button class="link" id="show-check">Details</button></div>`;
+}
+const KINDS={added:["+","New","var(--keep)"],changed:["~","Changed","var(--sig-yellow)"],removed:["−","Removed","var(--danger)"]};
+function checkFolderRow(f){
+  const st=f.state==="done"?'<span style="color:var(--keep)">✓ Checked</span>':f.state==="run"?'<span style="color:var(--accent-hi)">Checking</span>':'<span style="color:var(--faint)">Waiting</span>';
+  const r=f.found,res=f.state==="wait"?"":([r.added?`${r.added} new`:"",r.changed?`${r.changed} changed`:"",r.removed?`${r.removed} removed`:""].filter(Boolean).join(" · ")||(f.state==="done"?"No changes":""));
+  return `<div class="an-row"><span class="fico" aria-hidden="true" style="${f.state==="wait"?"opacity:.4":""}"></span><div><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div><div class="bar" style="margin-top:5px;height:4px"><i style="width:${f.seen/f.total*100}%;${f.state==="done"?"background:var(--keep)":""}"></i></div></div><div class="num" style="text-align:right;font-size:12px;color:var(--muted);min-width:140px">${st}${f.state==="wait"?"":`<br>${f.seen.toLocaleString()} / ${P(f.total,"video")}`}${res?`<br>${res}`:""}</div></div>`;
+}
+function checkFileRow(x,i){
+  const c=S.check,names=["video info","identical content","similarity"];
+  const st=i<c.fi?'<span style="color:var(--keep)">✓ Done</span>':(i===c.fi&&c.phase==="analyze")?`<span style="color:var(--accent-hi)">Checking ${names[x.stage]}</span>`:'<span style="color:var(--faint)">Waiting</span>';
+  return `<div class="an-row" style="grid-template-columns:40px minmax(0,1fr) auto"><div class="thumb" style="width:40px;height:24px;background:linear-gradient(135deg,hsl(${(200+i*23)%360} 45% 42%),hsl(${(240+i*23)%360} 40% 22%))" aria-hidden="true"></div><div style="min-width:0"><div class="r-name">${H(x.name)} <span class="pill" style="font-size:10px">${x.kind}</span></div><div class="r-path">${H(x.dir)} · ${gb(x.size)}</div>${(i===c.fi&&c.phase==="analyze")?`<div class="bar" style="height:4px;margin-top:4px"><i style="width:${x.pct}%"></i></div>`:""}</div><div style="font-size:12px;text-align:right">${st}</div></div>`;
+}
+function checkScreen(){
+  const c=S.check,p=checkProgress(),el=Math.round((Date.now()-c.t0)/1000),cf=c.files[c.fi];
+  const off=S.folders.filter(f=>f.offline);
+  const cur=c.phase==="diff"?`Checking file: <b class="num">${H(c.cur||"…")}</b>`:cf?`Analyzing: <b>${H(cf.name)}</b> (${gb(cf.size)})${cf.size>3?" · this is a large file, so it takes a little longer":""}`:"";
+  return `<div class="analysis" aria-live="polite">
+    ${S.detail?'<div><button class="btn small" id="back-list">← Back to the duplicate list</button></div>':""}
+    <div class="an-head"><h2>${c.phase==="diff"?"Checking for changes since last time":"Analyzing new files"}</h2><span class="an-eta num">${p}%<small>${Math.floor(el/60)} min ${el%60} s elapsed</small></span></div>
+    <div class="bar" style="height:8px"><i style="width:${p}%"></i></div>
+    <div class="current"><span class="pulse" aria-hidden="true"></span><span class="r-path" style="font-size:13px">${cur}</span></div>
+    <div class="h3" style="margin:4px 0 0">1. Checking for changes <span style="font-weight:400;color:var(--faint);font-size:12px">Folders are checked one at a time to go easy on the disk</span></div>
+    <div class="an-card">${c.folders.map(checkFolderRow).join("")}${off.map(f=>`<div class="an-row"><span class="fico" style="opacity:.3"></span><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div><div style="font-size:12px;color:var(--danger);text-align:right">Not connected,<br>so it can't be checked</div></div>`).join("")}</div>
+    ${c.log.length?`<div class="an-card" style="gap:3px"><div style="font-size:12px;color:var(--muted)">Changes found (newest first)</div>${c.log.slice(0,6).map(l=>`<div style="font-size:12px;display:flex;gap:8px;min-width:0"><b style="color:${KINDS[l.k][2]};width:14px;flex:none">${KINDS[l.k][0]}</b><span style="color:var(--muted);flex:none">${KINDS[l.k][1]}</span><span class="r-path" style="font-size:12px">${H(l.text)}</span></div>`).join("")}</div>`:""}
+    ${c.files.length?`<div class="h3" style="margin:4px 0 0">2. Analyzing new and changed files <span style="font-weight:400;color:var(--faint);font-size:12px">${P(c.files.length,"file")} · one at a time</span></div><div class="an-card">${c.phase==="diff"?'<div style="font-size:12px;color:var(--faint)">Starts when the change check is done</div>':c.files.map(checkFileRow).join("")}</div>`:""}
+    ${c.found.length?`<div class="h3" style="margin:4px 0 0">3. New duplicates found <span class="num" style="font-weight:400;color:var(--faint);font-size:12px">${P(c.found.length,"group")} · compared with files in all your folders</span></div><div class="an-card">${c.found.map(g=>`<div style="display:flex;gap:8px;align-items:center;font-size:13px;min-width:0">${MARK(g.type)}<span class="r-path" style="font-size:13px;color:var(--text)">${H(g.files[1].name)}</span><span style="color:var(--faint);flex:none">and</span><span class="r-path" style="font-size:13px;color:var(--text)">${H(g.files[0].name)} (${H(folderOf(g.files[0])?folderOf(g.files[0]).name:"")})</span></div>`).join("")}</div>`:""}
+    <div class="reassure"><span>Unchanged files reuse the previous analysis results, so they only need a quick check.</span><span>${c.auto?"This check runs automatically at startup. You can switch to “Check manually” in Settings.":"Checking because you pressed “Check for changes”."}</span></div>
+  </div>`;
+}
+let scanT=null;
+function tickScan(){clearTimeout(scanT);if(!S.folders.some(f=>f.scan<100)){S.detail=null;if(S.state==="scan")S.state="found";if(S.firstRun){S.firstRun=false;S.overlay={kind:"prio",order:ranked().map(f=>f.id)}}render();return}
+  S.scanTicks++;
+  S.folders.forEach((f,i)=>{if(f.scan<100){const slow=S.scanTicks%7<3;f.scan=Math.min(100,f.scan+(slow?0:(i===0?5:2)))}});
+  if(!S.overlay)render();scanT=setTimeout(tickScan,700)}
+let toastT;function toast(msg){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#win").appendChild(t)}t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),3000)}
+
+try{const w=localStorage.getItem("lmai-sidew");if(w)document.documentElement.style.setProperty("--sidew",w+"px")}catch(e){}
+$("#more").onclick=e=>{e.stopPropagation();const m=$("#menu");m.hidden=!m.hidden;$("#more").setAttribute("aria-expanded",!m.hidden)};
+document.addEventListener("click",e=>{if(!e.target.closest(".menu-wrap"))$("#menu").hidden=true;if(S.fmenu&&!e.target.closest(".fold")){S.fmenu=null;render()}});
+$$("#menu [data-toast]").forEach(b=>b.onclick=()=>{$("#menu").hidden=true;toast("Opens "+b.dataset.toast+" (skipped in the prototype)")});
+$("#open-settings").onclick=()=>{if(S.state==="first"){toast("Add a folder first");return}openKind("settings")};
+$("#open-files").onclick=()=>{if(S.state==="first"){toast("Add a folder first");return}openKind("files")};
+$$(".proto button[data-state]").forEach(b=>b.onclick=()=>fresh(b.dataset.state));
+$("#proto-offline").onclick=toggleOffline;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S&&S.lang){S.lang=false;toast("Closed without choosing. This time the Windows language is used, and you'll be asked again next start");render();return}if(e.key==="Escape"){if(S.fmenu){S.fmenu=null;render()}else if(S.overlay&&S.overlay.kind!=="run"){S.overlay=null;render()}}});
+fresh("found");
+})();
+</script>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Moves a portable install's catalog and cache to %LOCALAPPDATA%\LocalMediaAI with per-file SHA-256 verification.
+       Prints counts and sizes only. The source is never modified; "switch" and "rollback" only rename portable.flag. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LocalMediaAI.Infrastructure\LocalMediaAI.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

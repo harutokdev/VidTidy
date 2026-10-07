@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LocalMediaAI.App/LocalMediaAI.App.csproj" />
+    <Project Path="src/LocalMediaAI.Core/LocalMediaAI.Core.csproj" />
+    <Project Path="src/LocalMediaAI.Infrastructure/LocalMediaAI.Infrastructure.csproj" />
+    <Project Path="src/LocalMediaAI.WorkerProtocol/LocalMediaAI.WorkerProtocol.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LocalMediaAI.Core.Tests/LocalMediaAI.Core.Tests.csproj" />
+    <Project Path="tests/LocalMediaAI.Infrastructure.Tests/LocalMediaAI.Infrastructure.Tests.csproj" />
+    <Project Path="tests/LocalMediaAI.IntegrationTests/LocalMediaAI.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

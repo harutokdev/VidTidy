@@ -1,0 +1,79 @@
+<UserControl x:Class="LocalMediaAI.App.ReviewWorkspace"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:l="clr-namespace:LocalMediaAI.App.Localization"
+ xmlns:local="clr-namespace:LocalMediaAI.App" xmlns:core="clr-namespace:LocalMediaAI.Core;assembly=LocalMediaAI.Core" KeyDown="OnEvidenceKeyDown">
+ <UserControl.Resources>
+  <local:ThumbnailCacheImageConverter x:Key="ReviewImage"/>
+  <BooleanToVisibilityConverter x:Key="Visible"/>
+  <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Margin" Value="0,3"/></Style>
+  <Style x:Key="Exact" TargetType="WrapPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedUnifiedReview.IsExact}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Near" TargetType="WrapPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedUnifiedReview.IsNear}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Content" TargetType="WrapPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedUnifiedReview.IsContent}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+  <Style x:Key="Tag" TargetType="WrapPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedUnifiedReview.IsTag}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+ </UserControl.Resources>
+ <Grid Background="#15191F" KeyboardNavigation.TabNavigation="Continue">
+  <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <DockPanel Margin="4,4,12,0">
+   <StackPanel DockPanel.Dock="Top">
+    <TextBlock Text="{l:T 'レビュー候補'}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+    <ComboBox x:Name="CandidateFilter" ItemsSource="{Binding UnifiedReviewFilters}" SelectedItem="{Binding UnifiedReviewFilter}" ItemTemplate="{DynamicResource UnifiedReviewFilterTemplate}" AutomationProperties.Name="{l:T '候補の絞り込み'}"/>
+    <ComboBox ItemsSource="{Binding UnifiedReviewSorts}" SelectedItem="{Binding UnifiedReviewSort}" ItemTemplate="{DynamicResource UnifiedReviewSortTemplate}" AutomationProperties.Name="{l:T '候補の並び順'}"/>
+    <Button Content="{l:T '更新'}" Command="{Binding RefreshUnifiedReviewCommand}"/>
+    <TextBlock Text="{l:T '候補を取得しています'}" Visibility="{Binding IsReviewLoading, Converter={StaticResource Visible}}" AutomationProperties.LiveSetting="Polite"/>
+    <TextBlock Text="{Binding ReviewQueueMessage}" Margin="0,6" AutomationProperties.LiveSetting="Polite"/>
+    <Button Content="{l:T 'フィルターを解除'}" Click="ClearFilter"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding UnifiedReviewFilter}" Value="{x:Static core:UnifiedReviewFilter.All}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+    <CheckBox Foreground="#E8EDF4" Content="{l:T '一括判断モード'}" IsChecked="{Binding ReviewBulkMode}" AutomationProperties.Name="{l:T '一括判断モードを切り替える'}"/>
+   </StackPanel>
+   <WrapPanel DockPanel.Dock="Bottom"><Button Content="{l:T '前'}" Command="{Binding PreviousUnifiedReviewPageCommand}"/><TextBlock Text="{Binding ReviewPageStatus}"/><Button Content="{l:T '次'}" Command="{Binding NextUnifiedReviewPageCommand}"/></WrapPanel>
+   <ListBox x:Name="Queue" ItemsSource="{Binding UnifiedReviewItems}" SelectedItem="{Binding SelectedUnifiedReview}" AutomationProperties.AutomationId="EvidenceReviewQueue" AutomationProperties.Name="{l:T 'レビュー候補'}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/><Setter Property="AutomationProperties.HelpText" Value="{Binding AutomationHelpText}"/></Style></ListBox.ItemContainerStyle>
+    <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="3"><CheckBox Foreground="#E8EDF4" IsChecked="{Binding IsBulkSelected}" Content="{l:T '一括判断対象'}" Visibility="{Binding DataContext.ReviewBulkMode, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Visible}}"/><TextBlock Text="{Binding GeneralType}" FontWeight="SemiBold"/><TextBlock Text="{Binding GeneralMediaLabel}"/><TextBlock Text="{Binding GeneralDecision}"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+   </ListBox>
+  </DockPanel>
+  <DockPanel Grid.Column="1" KeyboardNavigation.TabNavigation="Local">
+   <StackPanel DockPanel.Dock="Bottom" KeyboardNavigation.TabIndex="2">
+    <Border Padding="12" Background="#1C222B" Margin="0,4" IsEnabled="{Binding ReviewJudgmentEnabled}">
+     <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding SelectedUnifiedReview}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding ReviewBulkMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
+     <StackPanel><TextBlock Text="{l:T '判断を記録'}" FontSize="16" FontWeight="SemiBold"/>
+      <WrapPanel Style="{StaticResource Exact}"><Button Content="{l:T '完全一致を確認'}" Command="{Binding ConfirmUnifiedReviewCommand}"/><Button Content="{l:T '両方を保持'}" Command="{Binding KeepBothUnifiedReviewCommand}"/></WrapPanel>
+      <WrapPanel Style="{StaticResource Near}"><Button Content="{l:T '類似重複を確認'}" Command="{Binding ConfirmNearUnifiedReviewCommand}"/><Button Content="{l:T '両方を保持'}" Command="{Binding KeepBothUnifiedReviewCommand}"/><Button Content="{l:T '重複ではない'}" Command="{Binding NotDuplicateUnifiedReviewCommand}"/></WrapPanel>
+      <WrapPanel Style="{StaticResource Content}"><Button Content="{l:T '関連あり'}" Command="{Binding RelatedUnifiedReviewCommand}"/><Button Content="{l:T '両方を保持'}" Command="{Binding KeepBothUnifiedReviewCommand}"/><Button Content="{l:T '関連なし'}" Command="{Binding NotRelatedUnifiedReviewCommand}"/></WrapPanel>
+      <WrapPanel Style="{StaticResource Tag}"><Button Content="{l:T 'タグを確認'}" Command="{Binding ConfirmTagUnifiedReviewCommand}"/><Button Content="{l:T 'タグを却下'}" Command="{Binding RejectTagUnifiedReviewCommand}"/></WrapPanel>
+      <WrapPanel><Button Content="{l:T '対象外'}" Command="{Binding IgnoreUnifiedReviewCommand}"/><Button Content="{l:T '未確認に戻す'}" Command="{Binding ResetUnifiedReviewCommand}"/></WrapPanel>
+      <TextBox Text="{Binding UnifiedReviewNote}" AutomationProperties.Name="{l:T '判断のメモ'}"/>
+     </StackPanel>
+    </Border>
+    <TextBlock Text="{Binding ReviewJudgmentFeedback}" AutomationProperties.LiveSetting="Polite"/>
+   </StackPanel>
+  <ScrollViewer TabIndex="1" IsTabStop="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel>
+    <TextBlock Text="{Binding SelectedUnifiedReview.GeneralType}" FontSize="22" FontWeight="SemiBold"/>
+    <TextBlock Text="{Binding ReviewMeaning}" Margin="0,6,0,12"/>
+    <TextBlock Text="{Binding SelectedUnifiedReview.DisplayName}" Visibility="{Binding SelectedUnifiedReview.IsTag, Converter={StaticResource Visible}}" FontSize="18"/>
+    <ItemsControl ItemsSource="{Binding ReviewEvidence}" AutomationProperties.AutomationId="ReviewPrimaryEvidence">
+     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+     <ItemsControl.ItemTemplate><DataTemplate><Border Focusable="True" AutomationProperties.Name="{Binding FileName}" Width="330" Padding="10" Margin="0,0,10,10" Background="#202833" BorderBrush="#425066" BorderThickness="1">
+      <Border.Style><Style TargetType="Border"><Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#8FC5FF"/></Trigger></Style.Triggers></Style></Border.Style>
+      <StackPanel><Grid Height="110" Background="#0D1117"><TextBlock Text="{l:T '画像が未生成でも、ファイル名とプレビューから確認できます'}" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Source, ElementName=EvidenceImage}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><Image x:Name="EvidenceImage" Source="{Binding Frame, Converter={StaticResource ReviewImage}, ConverterParameter=Evidence}" Stretch="Uniform"/></Grid>
+       <TextBlock Text="{Binding FileName}" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,3"/><TextBlock Text="{Binding Path}"/><TextBlock Text="{Binding Facts}"/><TextBlock Text="{Binding TimestampLabel}"/><TextBlock Text="{Binding Availability}"/>
+       <Button Background="Transparent" HorizontalAlignment="Left" Content="{l:T 'プレビュー'}" Command="{Binding Preview}" AutomationProperties.Name="{l:T 'このメディアを根拠時刻からプレビュー'}"/>
+       <Button HorizontalAlignment="Left" Content="{l:T 'このファイルを整理'}" Command="{Binding Handoff}" Background="Transparent" AutomationProperties.Name="{l:T 'このメディアだけをファイル操作へ渡す'}"/>
+      </StackPanel>
+     </Border></DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <StackPanel Visibility="{Binding ReviewBulkMode, Converter={StaticResource Visible}}">
+     <TextBlock Text="{l:T '一括判断 — 同じ種類の現在候補だけを明示選択してください'}" FontWeight="SemiBold"/>
+     <ComboBox ItemsSource="{Binding ReviewCompatibleBulkActions}" SelectedItem="{Binding UnifiedReviewBulkAction}" ItemTemplate="{DynamicResource UnifiedReviewActionTemplate}" AutomationProperties.Name="{l:T '一括判断の操作'}"/>
+     <TextBlock Text="{Binding ReviewBulkSummary}"/>
+     <CheckBox Content="{l:T '選択した同じ種類の候補だけへ判断を保存することを確認しました'}" IsChecked="{Binding BulkUnifiedReviewConfirmation}"/>
+     <Button Content="{l:T '選択した候補の判断を保存'}" Command="{Binding BulkUnifiedReviewCommand}"/>
+    </StackPanel>
+    <TextBlock Text="{Binding ReviewJudgmentAvailability}"/>
+    <TextBlock Text="{Binding OperationHandoffFeedback}" AutomationProperties.LiveSetting="Polite"/>
+    <Expander local:DeveloperDiagnostics.Section="True" Header="{l:T '技術的な根拠・状態'}" IsExpanded="False"><StackPanel><TextBlock Text="{Binding SelectedUnifiedReview.ReviewItemId}"/><TextBlock Text="{Binding SelectedUnifiedReview.EvidenceStateDisplay}"/><TextBlock Text="{Binding SelectedUnifiedReview.SourceAvailability}"/><TextBlock Text="{Binding SelectedUnifiedReview.EvidenceSummary}"/><TextBlock Text="{Binding SelectedUnifiedReview.ScoreText}"/><TextBlock Text="{Binding SelectedUnifiedReview.ProvenanceSummary}"/><TextBlock Text="{Binding UnifiedReviewStatus}"/></StackPanel></Expander>
+    <TextBlock Text="{l:T '手動タグや一括判断は、上の「詳細レビュー」モードで利用できます。'}" FontSize="11" Margin="0,8"/>
+   </StackPanel>
+  </ScrollViewer>
+  </DockPanel>
+ </Grid>
+</UserControl>

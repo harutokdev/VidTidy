@@ -1,0 +1,83 @@
+syntax = "proto3";
+package localmediaai.worker.v1;
+option csharp_namespace = "LocalMediaAI.WorkerProtocol.Grpc";
+
+// Protocol v1: existing tags are never reused or changed. Authentication is carried
+// exclusively by the x-local-media-ai-token gRPC metadata header.
+service LocalMediaWorker {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Version(VersionRequest) returns (VersionResponse);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+  rpc RunJob(JobRequest) returns (stream JobProgressOrResult);
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse);
+}
+
+message HealthRequest {
+  // Retained only for wire compatibility with the initial skeleton. Ignored by v1 hosts.
+  string session_token = 1 [deprecated = true];
+}
+
+message WorkerInfo {
+  int32 protocol_version = 1;
+  string worker_version = 2;
+  string python_version = 3;
+  bool backend_available = 4;
+  string backend_detail = 5;
+  int32 process_id = 6;
+  bool serving = 7;
+}
+
+message HealthResponse { WorkerInfo worker = 1; }
+message VersionRequest {}
+message VersionResponse {
+  WorkerInfo worker = 1;
+  repeated string capabilities = 2;
+}
+message ShutdownRequest {}
+message ShutdownResponse { bool accepted = 1; }
+
+message JobRequest {
+  string job_id = 1;
+  string job_type = 2;
+  map<string,string> input_descriptors = 3;
+  string config_json = 4;
+  string expected_processor_version = 5;
+  // Retained for wire compatibility. Authentication must use metadata, never this field.
+  string session_token = 6 [deprecated = true];
+}
+message JobProgress {
+  string job_id = 1;
+  string phase = 2;
+  int64 current = 3;
+  int64 total = 4;
+  string unit = 5;
+  string heartbeat_utc = 6;
+  map<string,double> metrics = 7;
+}
+message ArtifactDescriptor {
+  string kind = 1;
+  string relative_path = 2;
+  string sha256 = 3;
+  int64 byte_size = 4;
+  string mime_type = 5;
+}
+message JobResult {
+  string job_id = 1;
+  string outcome = 2;
+  repeated ArtifactDescriptor artifacts = 3;
+  string structured_result_json = 4;
+  string error_code = 5;
+  string error_message = 6;
+}
+message JobProgressOrResult {
+  oneof payload {
+    JobProgress progress = 1;
+    JobResult result = 2;
+  }
+}
+message CancelJobRequest {
+  string job_id = 1;
+  // Retained for wire compatibility. Authentication must use metadata, never this field.
+  string session_token = 2 [deprecated = true];
+}
+message CancelJobResponse { bool accepted = 1; }

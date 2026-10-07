@@ -1,0 +1,5 @@
+# Runtime dependencies for the isolated Portable Python 3.10 worker.
+# grpcio-tools is retained because the portable provisioning script regenerates Python stubs from the source proto.
+grpcio==1.78.1
+grpcio-tools==1.78.1
+protobuf==6.33.5

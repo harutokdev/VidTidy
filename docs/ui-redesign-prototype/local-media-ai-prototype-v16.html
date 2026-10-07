@@ -1,0 +1,1297 @@
+<title>Local Media AI 整理画面試作 v16</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#12161C; --surface:#1A2029; --side:#161B22; --raised:#222A35; --hover:#2A3441; --line:#2E3846; --line2:#3B4757;
+  --text:#E7EDF4; --muted:#9AA6B5; --faint:#6F7B8B;
+  --accent:#3C86DA; --accent-hi:#5A9CE6; --accent-ink:#fff;
+  --keep:#3FAE7A; --keep-bg:rgba(63,174,122,.14);
+  --trash:#B7C3D3; --trash-bg:rgba(183,195,211,.12);
+  --sig-green:#3FAE7A; --sig-yellow:#E6C547; --sig-red:#E4625B;
+  --bin:#8E7BD0;
+  --warn:#E0A042; --danger:#E4625B; --folder:#E2B356;
+  --radius:6px; --sidew:250px;
+  --font:"Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.55;padding-inline:16px;padding-block:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent-hi);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+.proto{max-width:1340px;margin:0 auto 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12px}
+.proto b{color:var(--text);font-weight:500}
+.proto button{background:transparent;border:1px dashed var(--line2);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.proto button[aria-pressed="true"]{border-style:solid;border-color:var(--accent);color:var(--text)}
+
+.win{max-width:1340px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;height:840px;position:relative}
+.titlebar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:#141920}
+.brand{font-weight:700;display:flex;align-items:center;gap:8px}
+.brand i{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--keep));display:inline-block}
+.titlebar .sp{flex:1}
+.tbtn{background:transparent;border:1px solid transparent;border-radius:var(--radius);padding:5px 10px;color:var(--muted)}
+.tbtn:hover{background:var(--hover);color:var(--text)}
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--raised);border:1px solid var(--line2);border-radius:8px;min-width:240px;padding:6px;z-index:30;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:5px}
+.menu button:hover{background:var(--hover)}
+.menu button:disabled{opacity:.45;cursor:default}
+.menu small{display:block;color:var(--faint);font-size:11px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+.menu .danger{color:#F08A84}
+
+/* layout with draggable splitter */
+.body{flex:1;display:grid;grid-template-columns:var(--sidew) 6px minmax(0,1fr);min-height:0}
+.side{background:var(--side);display:flex;flex-direction:column;min-height:0;overflow:auto}
+.splitter{background:var(--line);cursor:col-resize;position:relative;touch-action:none}
+.splitter::after{content:"";position:absolute;top:50%;left:1px;width:4px;height:36px;margin-top:-18px;border-radius:2px;background:var(--line2)}
+.splitter:hover,.splitter:focus-visible,.splitter.drag{background:var(--accent)}
+.side-sec{padding:12px 12px 6px}
+.side-h{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.side-h h2{font-size:12px;font-weight:500;color:var(--muted);margin:0;letter-spacing:.04em}
+.side-h .sp{flex:1}
+.add{background:transparent;border:1px solid var(--line2);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--text)}
+.add:hover{background:var(--hover)}
+.fold{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 4px 7px 8px;border-radius:6px;position:relative}
+.fold:hover{background:rgba(255,255,255,.03)}
+.fico{width:20px;height:15px;border-radius:2px;background:var(--folder);position:relative;margin-top:6px}
+.fico::before{content:"";position:absolute;left:0;top:-4px;width:9px;height:5px;border-radius:2px 2px 0 0;background:var(--folder)}
+.fname{display:flex;align-items:center;gap:6px;min-width:0}
+.fname span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsub{font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fstate{font-size:11px;color:var(--muted)}
+.fstate.scan{color:var(--accent-hi)}
+.fbar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:3px}
+.fbar i{display:block;height:100%;background:var(--accent)}
+.rank{font-size:10px;color:var(--folder);border:1px solid rgba(226,179,86,.5);border-radius:10px;padding:0 6px;flex:none;white-space:nowrap}
+.kebab{background:none;border:0;color:var(--muted);width:26px;height:26px;border-radius:5px}
+.kebab:hover{background:var(--raised);color:var(--text)}
+.fmenu{position:fixed;right:auto;z-index:50;max-width:calc(100vw - 16px)}
+.drives{display:grid;gap:12px;padding:4px 4px 8px}
+.drv{display:grid;gap:4px;font-size:12px}
+.drv .top{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
+.drv .top b{color:var(--text);font-weight:500}
+.drv .alt{display:flex;justify-content:space-between;gap:8px;color:var(--faint);font-size:11px}
+.drv .alt span:last-child{color:var(--bin)}
+.dbar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;display:flex}
+.dbar i{display:block;height:100%;background:#5B6B80}
+.dbar s{display:block;height:100%;background:repeating-linear-gradient(135deg,var(--bin) 0 3px,rgba(142,123,208,.35) 3px 6px)}
+.dbar em{display:block;height:100%;background:repeating-linear-gradient(135deg,var(--keep) 0 3px,rgba(63,174,122,.3) 3px 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--faint);padding:0 4px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:7px;border-radius:2px;display:inline-block}
+.side-foot{margin-top:auto;padding:10px 12px;border-top:1px solid var(--line);display:grid;gap:6px}
+.sidelink{background:none;border:0;text-align:left;padding:6px 8px;border-radius:5px;color:var(--muted);display:flex;justify-content:space-between}
+.sidelink:hover{background:var(--hover);color:var(--text)}
+
+.work{display:flex;flex-direction:column;min-height:0}
+.scanstrip{display:flex;align-items:center;gap:10px;padding:7px 18px;border-bottom:1px solid var(--line);background:#16202C;font-size:12px;color:var(--muted)}
+.scanstrip b{color:var(--text);font-weight:500}
+.scanstrip .bar{flex:0 0 140px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent-hi);flex:none;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.next{display:flex;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(60,134,218,.12),transparent 60%)}
+.next .stats{font-size:12px;color:var(--muted);margin-bottom:2px}
+.next .stats b{color:var(--text);font-weight:500}
+.next .t{font-weight:700;font-size:16px;text-wrap:balance}
+.next .d{color:var(--muted);font-size:13px}
+.next .grow{flex:1;min-width:0}
+.rulebox{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px;background:rgba(63,174,122,.08);border:1px solid rgba(63,174,122,.35);border-radius:6px;padding:6px 10px}
+.rulebox b{font-weight:500;color:var(--text)}
+.rulebox .sep{color:var(--faint)}
+.btn{border:1px solid var(--line2);background:var(--raised);border-radius:var(--radius);padding:8px 14px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.btn.primary:hover{background:var(--accent-hi)}
+.btn.ghost{background:transparent}
+.btn.small{padding:4px 10px;font-size:12px}
+.btn.danger{border-color:rgba(228,98,91,.6);color:#F4A19C;background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{background:none;border:0;color:var(--accent-hi);padding:0;font-size:12px}
+.link:hover{text-decoration:underline}
+
+.main{flex:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:0}
+.list{border-right:1px solid var(--line);overflow:auto}
+.detail{overflow:auto;padding:16px 18px}
+.sect-h{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#171D25;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line)}
+.sect-h .caret{background:none;border:0;color:var(--muted);width:22px}
+.sect-h .name{font-weight:700;display:flex;align-items:center;gap:8px}
+.sect-h .meta{color:var(--muted);font-size:12px}
+.sect-h .sp{flex:1}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.pill.keep{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.pill.trash{border-color:transparent;background:var(--trash-bg);color:var(--trash)}
+.pill.info{border-color:transparent;background:rgba(60,134,218,.15);color:var(--accent-hi)}
+.pill.manual{border-color:rgba(90,156,230,.6);color:var(--accent-hi)}
+.same,.like,.chk{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-weight:700;font-size:12px;line-height:1;flex:none}
+.same{background:var(--sig-green);color:#0C1B13}
+.like{background:var(--sig-yellow);color:#15130A}
+.chk{background:var(--sig-red);color:#1D0B0A}
+.lg{width:22px;height:22px;font-size:14px}
+.group{border-bottom:1px solid var(--line);cursor:pointer}
+.group:hover{background:#1E2530}
+.group.sel{background:#1F2A38;box-shadow:inset 3px 0 0 var(--accent)}
+.group.queued{opacity:.55}
+.g-head{display:flex;align-items:center;gap:8px;padding:8px 14px 2px;font-size:12px;color:var(--muted)}
+.g-head .sp{flex:1}
+.row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 14px}
+.thumb{width:56px;height:32px;border-radius:4px;position:relative;overflow:hidden;flex:none}
+.thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.45))}
+.r-main{min-width:0}
+.r-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-path{font-size:12px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-facts{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.r-tag{margin-left:6px}
+
+.d-title{font-size:18px;font-weight:700;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.d-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+.choice{display:grid;gap:8px;margin-bottom:14px}
+.opt{border:1px solid var(--line2);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;cursor:pointer;background:var(--surface)}
+.opt.keep{border-color:var(--keep);background:var(--keep-bg)}
+.opt input{accent-color:var(--keep);width:16px;height:16px}
+.opt .row{padding:0}
+.why{font-size:12px;color:var(--keep);margin-top:2px}
+.note{border-left:3px solid var(--line2);padding:6px 10px;color:var(--muted);font-size:13px;margin:10px 0}
+.note.warn{border-color:var(--warn);color:#E9C58C}
+.note.ok{border-color:var(--keep)}
+.facts{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 14px}
+.facts th,.facts td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.facts th{color:var(--muted);font-weight:400;width:26%}
+.facts td.best{color:var(--keep);font-weight:700}
+.facts td.best::after{content:" ▲";font-size:10px}
+.frames{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px}
+.frame{display:grid;gap:3px}
+.frame .thumb,.player .thumb{width:100%;height:auto;aspect-ratio:16/9}
+.frame span{font-size:11px;color:var(--muted)}
+.player{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scrub{display:flex;gap:10px;align-items:center;margin:8px 0 14px}
+.scrub .track{flex:1;height:4px;background:var(--line2);border-radius:2px;position:relative}
+.scrub .track i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:2px}
+.h3{font-size:13px;font-weight:700;margin:14px 0 4px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:60px 20px}
+
+/* analysis waiting panel */
+.analysis{flex:1;overflow:auto;padding:24px 28px;display:grid;gap:18px;align-content:start;max-width:860px}
+.an-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.an-head h2{margin:0;font-size:22px}
+.an-eta{font-size:15px;color:var(--text)}
+.an-eta small{color:var(--muted);font-size:12px;margin-left:6px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.an-card{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:8px;background:#171D25}
+.an-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center}
+.stages{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+.stages span{padding:2px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--faint)}
+.stages span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.stages span.now{border-color:var(--accent);color:var(--text)}
+.current{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+.current b{color:var(--text);font-weight:500}
+.reassure{display:grid;gap:6px;font-size:13px;color:var(--muted);padding-left:12px;border-left:3px solid var(--line2)}
+
+.actionbar{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);background:#141920}
+.actionbar .sum{font-size:15px}
+.actionbar .sum b{font-size:18px}
+.actionbar .cap{color:var(--muted);font-size:12px}
+.actionbar .sp{flex:1}
+.meter{width:110px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+
+.onboard{flex:1;display:grid;place-items:center;padding:40px 20px}
+.drop{max-width:560px;width:100%;border:2px dashed var(--line2);border-radius:14px;padding:44px 28px;text-align:center;display:grid;gap:12px;justify-items:center}
+.drop h2{margin:0;font-size:22px;text-wrap:balance}
+.drop p{margin:0;color:var(--muted);max-width:44ch}
+.bigico{width:56px;height:42px;border-radius:6px;background:var(--folder);position:relative}
+.bigico::before{content:"";position:absolute;left:0;top:-8px;width:24px;height:10px;border-radius:4px 4px 0 0;background:var(--folder)}
+
+.scrim{position:absolute;inset:0;background:rgba(5,8,12,.6);z-index:40;display:flex}
+.drawer{margin-left:auto;width:min(780px,100%);background:var(--surface);border-left:1px solid var(--line2);display:flex;flex-direction:column;height:100%}
+.drawer-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.drawer-h .sp{flex:1}
+.drawer-b{flex:1;overflow:auto;padding:4px 0}
+.dsec{padding:14px 18px;border-bottom:1px solid var(--line)}
+.dsec h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.dsec h3 .sp{flex:1}
+.dest{display:grid;gap:8px}
+.dest label{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--line2);border-radius:8px;padding:10px;cursor:pointer}
+.dest label.on{border-color:var(--accent);background:rgba(60,134,218,.08)}
+.dest input{accent-color:var(--accent);margin-top:4px}
+.dest small{display:block;color:var(--muted);font-size:12px}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:0}
+.qrow .row{padding-left:0}
+.hist{width:100%;border-collapse:collapse;font-size:13px}
+.hist th,.hist td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+.hist th{color:var(--muted);font-weight:400;font-size:12px}
+.files .row{border-bottom:1px solid var(--line)}
+.filter{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);background:#18202A}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--raised);border:1px solid var(--line2);border-radius:20px;padding:2px 10px;color:var(--text);font-size:12px}
+.modal{margin:auto;width:min(780px,calc(100% - 32px));max-height:calc(100% - 40px);background:var(--surface);border:1px solid var(--line2);border-radius:12px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.m-h{padding:16px 20px 10px;border-bottom:1px solid var(--line)}
+.m-h h2{margin:0 0 8px;font-size:18px;display:flex;align-items:center;gap:8px}
+.m-h p{margin:0;color:var(--muted);font-size:13px}
+.wsteps{display:flex;gap:6px;flex-wrap:wrap}
+.wsteps span{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--muted)}
+.wsteps span.on{border-color:var(--accent);color:var(--text);background:rgba(60,134,218,.15)}
+.wsteps span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.m-b{padding:14px 20px;overflow:auto}
+.m-f{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.m-f .sp{flex:1}
+.wgroup{border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+.wgroup-h{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.wgroup-h .sp{flex:1}
+.wrow{display:grid;grid-template-columns:24px 64px minmax(0,1fr);align-items:center;gap:6px;padding-right:10px}
+.wrow .row{padding:6px 0}
+.wrow input{accent-color:var(--accent);width:16px;height:16px;justify-self:center}
+.wrow .role{font-size:11px}
+.progress-list .row{border-bottom:1px solid var(--line)}
+.bigstat{font-size:40px;font-weight:700;line-height:1.1}
+.toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:8px;padding:8px 14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90%}
+.form{display:grid;gap:14px}
+.form label,.form .fld{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+.form input[type=text],.form select{background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:8px 10px;color:var(--text);font:inherit}
+.form fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 14px 14px;margin:0;display:grid;gap:10px}
+.form legend{padding:0 6px;color:var(--text);font-weight:500}
+.form .hint{font-size:12px;color:var(--faint)}
+.order{display:grid;gap:6px}
+.order .it{display:grid;grid-template-columns:18px 22px 20px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:6px 8px;color:var(--text)}
+.order .it small{color:var(--faint);display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order .mv{display:flex;gap:4px}
+.order .mv button{width:28px;height:26px;border-radius:5px;border:1px solid var(--line2);background:var(--surface)}
+.order .mv button:disabled{opacity:.3}
+.ret{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:center}
+.retc{display:flex;gap:6px;align-items:center}
+.retc select{padding:6px 8px}
+.unit{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:6px;background:var(--bg);overflow:hidden}
+.unit input{width:64px;border:0!important;border-radius:0!important;background:transparent!important;text-align:right;padding:6px 6px!important}
+.unit span{padding:0 10px 0 2px;color:var(--muted);font-size:13px}
+.unit.off{opacity:.4}
+.grip{cursor:grab;color:var(--faint);font-size:14px;line-height:1;user-select:none;text-align:center}
+.dnd .it[draggable=true]{cursor:grab}
+.dnd .it.dragging,.fold.dragging{opacity:.4}
+.dnd .it.over-top,.fold.over-top{box-shadow:inset 0 3px 0 var(--accent)}
+.dnd .it.over-bottom,.fold.over-bottom{box-shadow:inset 0 -3px 0 var(--accent)}
+.fold[draggable=true]{cursor:grab}
+.checkline{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint);padding:2px 8px 6px}
+.checkline .sp{flex:1}
+.switch{display:flex;gap:10px;align-items:flex-start;color:var(--text)}
+.switch input{margin-top:4px}
+.switch small{display:block;color:var(--faint);font-size:12px}
+.fstate.off{color:var(--danger)}
+.optw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;align-items:center}
+.keys{font-size:11px;color:var(--faint);margin-top:12px}
+.plabel{position:absolute;left:6px;top:4px;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);padding:0 5px;border-radius:3px}
+.sumt{width:100%;border-collapse:collapse;font-size:13px}
+.sumt th,.sumt td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.sumt th{color:var(--muted);font-weight:400;font-size:12px}
+.sumrow{cursor:pointer}.sumrow:hover{background:var(--hover)}
+.vbox{aspect-ratio:16/9;display:grid;place-items:center;text-align:center;background:#0E1217;border:1px dashed var(--line2);border-radius:6px;padding:20px}
+.vbox p{color:var(--muted);font-size:13px;max-width:48ch;margin:8px auto}
+.vaultf{display:grid;gap:6px;border:1px solid var(--line2);border-radius:8px;padding:10px}
+.tin{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;color:var(--text);font:inherit}
+.warnlink{color:#E9C58C!important}
+.fsum{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fsum-h,.fsum-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:center;padding:8px 12px}
+.fsum-h{font-size:12px;color:var(--muted);background:#171D25;border-bottom:1px solid var(--line)}
+.fsum-r{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--text)}
+.fsum-r:last-child{border-bottom:0}
+.fsum-r:hover{background:var(--hover)}
+.fsum-r.on{background:rgba(60,134,218,.12);box-shadow:inset 3px 0 0 var(--accent)}
+.fsum-n{display:flex;gap:8px;align-items:center;min-width:0}
+.fsum-n small{display:block;font-size:11px;color:var(--faint)}
+.fsum-c{display:grid;gap:3px;font-size:13px}
+.hbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;display:block}
+.hbar i{display:block;height:100%}
+.agrps{display:grid;gap:8px}
+.agrp{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.agrp-k{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;background:rgba(63,174,122,.06)}
+.agrp-t{display:grid;gap:4px;padding:6px 10px 8px 76px;border-top:1px solid var(--line)}
+.fsum-h.pat,.fsum-r.pat{grid-template-columns:minmax(0,1.1fr) 18px minmax(0,1.6fr) 70px minmax(0,1.2fr)}
+.fsum-r.tot{background:#171D25;cursor:default}
+.fsum-r.tot:hover{background:#171D25}
+.pf{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.pf small{display:block;font-size:11px;color:var(--faint)}
+.pts{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
+.arrow{color:var(--faint);text-align:center}
+.bigline{font-size:17px;margin:0 0 6px}
+.fcount{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fc-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 190px;gap:12px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line)}
+.fc-r:last-child{border-bottom:0}
+.fc-n{text-align:right;font-size:13px}
+.fc-n small{display:block;font-size:11px;color:var(--faint)}
+.fchip{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;background:var(--raised);border:1px solid var(--line2);color:var(--text);margin-right:2px}
+.devlist{margin:4px 0 0 26px;padding:0;font-size:12px;color:var(--faint);display:grid;gap:2px}
+.ret span{color:var(--text)}
+.ret small{display:block;color:var(--faint);font-size:11px}
+.pick{display:grid;gap:6px}
+.pick button{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;text-align:left;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.pick button[aria-pressed="true"]{border-color:var(--accent);background:rgba(60,134,218,.1)}
+.pick button:disabled{opacity:.5}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.cmp div{border:1px solid var(--line);border-radius:8px;padding:10px;background:#171D25}
+.cmp b{display:block;font-size:20px}
+.cmp span{font-size:12px;color:var(--muted)}
+
+/* v16 */
+.chg{position:relative}
+.chg summary{cursor:pointer;border:1px solid var(--accent);border-radius:20px;padding:3px 10px;color:var(--text);list-style:none}
+.chg ol{position:absolute;z-index:80;top:calc(100% + 6px);left:0;width:min(560px,90vw);margin:0;padding:12px 14px 12px 32px;background:var(--raised);border:1px solid var(--line2);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.45);display:grid;gap:6px;font-size:12px;color:var(--text)}
+.next{display:block}
+.next .top{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:8px}
+.next .top .sp{flex:1}
+.next .top .stats{margin:0}
+.steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px}
+.steps span{padding:2px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--faint);white-space:nowrap}
+.steps span.on{border-color:var(--accent);color:var(--text);background:rgba(60,134,218,.15)}
+.steps span.ok{border-color:transparent;background:var(--keep-bg);color:var(--keep)}
+.steps i{color:var(--faint);font-style:normal}
+.next .go{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn.big{padding:10px 22px;font-size:15px}
+.btn.outline{border-color:var(--accent);color:var(--accent-hi);background:transparent}
+.btn.outline:hover{background:rgba(60,134,218,.12)}
+.group.one{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px}
+.group.single{cursor:default}
+.group.single:hover{background:transparent}
+.cnt{font-size:12px;color:var(--muted);margin-left:6px}
+.locs{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.loc{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:1px 8px 1px 2px;border-radius:20px;white-space:nowrap;background:var(--trash-bg);color:var(--trash)}
+.loc em{font-style:normal;font-size:10px;padding:0 6px;border-radius:20px;background:rgba(255,255,255,.08)}
+.loc.k{background:var(--keep-bg);color:var(--keep)}
+.r-right{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.r-right b{display:block;color:var(--text);font-size:13px;font-weight:500}
+.later{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:12px 14px;border:1px dashed var(--line2);border-radius:8px;font-size:13px;color:var(--muted)}
+.later b{color:var(--text);font-weight:500}
+.later .sp{flex:1}
+.later .link{white-space:nowrap}
+.add,.side-h h2{white-space:nowrap}
+.sect-h .name{white-space:nowrap}
+.sect-h .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.g-head span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hintbox{font-size:11px;color:var(--faint);padding:4px 8px}
+.qmark{width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font-size:11px;padding:0;line-height:1}
+.qmark:hover{color:var(--text);border-color:var(--muted)}
+.preview{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#171D25;display:grid;gap:8px}
+.pv-r{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,140px) 150px;gap:10px;align-items:center;font-size:13px;color:var(--text)}
+.pv-r small{display:block;font-size:11px}
+
+@media (max-width:900px){
+  .body{grid-template-columns:1fr}
+  .splitter{display:none}
+  .side{border-bottom:1px solid var(--line)}
+  .main{grid-template-columns:1fr}
+  .list{border-right:0}
+  .detail{border-top:1px solid var(--line)}
+  .win{height:auto}
+  .next,.actionbar{flex-wrap:wrap}
+  .r-facts{display:none}
+  .cmp{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="proto" aria-label="試作用の操作">
+  <span><b>試作</b>（データは架空の例です）状態を切り替える:</span>
+  <button data-state="first">初めて起動</button>
+  <button data-state="scan">解析中</button>
+  <button data-state="found">重複あり</button>
+  <button data-state="clean">全部片付いた</button>
+  <button data-state="return">次に開いたとき</button>
+  <span style="margin-left:8px">操作:</span><button id="proto-offline" aria-pressed="false">外付けHDD（F:）を外す／つなぐ</button>
+  <details class="chg"><summary>v16で変えたところ</summary><ol>
+    <li>上の「次にやること」から、残す方のルールの枠をなくしました。ルールは「ルールを確認して承認」の画面の一番上で確かめます。</li>
+    <li>大きい青いボタンを見出しと説明のすぐ下に置き、画面に1つだけにしました。下の帯の「確認して実行」は枠線だけのボタンにし、上と同じときは出しません。</li>
+    <li>上に手順（1. 承認 → 2. 実行 → 3. よく似ているを確認）を出し、いまどこかが分かるようにしました。</li>
+    <li>「ルールを変更」は設定全体ではなく、ルールだけの画面を開きます。並べ替えると、各フォルダーから片付ける本数がその場で変わって見えます。</li>
+    <li>実行の前は、一覧に「整理リストに入っているもの」だけを出します。よく似ている組は1行の案内にまとめ、「先に見る」で開けます。</li>
+    <li>完全に同じ組は1行にまとめました。違うのは置き場所だけなので、残す・片付けるフォルダーを並べています（マウスを乗せると場所の全体が出ます）。</li>
+    <li>一覧の最初の組を自動で選び、右の欄が空にならないようにしました。</li>
+    <li>上の数字の行からオレンジの警告を外しました（左の欄にあります）。左の欄の長い説明は「閉じる」で畳め、「?」で開き直せます。</li>
+    <li>下の帯の「1回に〇件まで」は、上限に近づいたときだけ出します。</li>
+    <li>狭い幅で見出しが途中で折り返さないようにしました。</li>
+  </ol></details>
+</div>
+
+<div class="win" id="win">
+  <div class="titlebar">
+    <div class="brand"><i aria-hidden="true"></i>Local Media AI</div>
+    <div class="sp"></div>
+    <button class="tbtn" id="open-files">すべてのファイル</button>
+    <button class="tbtn" id="open-settings">設定</button>
+    <div class="menu-wrap">
+      <button class="tbtn" id="more" aria-haspopup="true" aria-expanded="false" aria-label="その他の機能">︙</button>
+      <div class="menu" id="menu" hidden>
+        <button data-toast="AI検索（言葉で動画を探す）">AI検索<small>「海辺の犬」のように言葉で動画の中身を探す</small></button>
+        <button data-toast="提案タグの確認">提案タグ<small>AIが動画に付けた「海」「犬」などのタグを確認する</small></button>
+        <button data-toast="内容が似ている動画（重複ではない）">内容が似ている動画<small>重複ではないが関連する動画</small></button>
+        <hr>
+        <button data-toast="解析の詳細と、完了できなかった処理">解析の詳細</button>
+      </div>
+    </div>
+  </div>
+  <div id="screen" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const H=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LIMIT=25, LIMIT_EXACT=100;
+const hues=[205,28,160,280,340,95,190,48,230,12,300,130];
+const thumb=(h,alt)=>`<div class="thumb" style="background:linear-gradient(135deg,hsl(${h} 45% 42%),hsl(${(h+40)%360} 40% 22%))" role="img" aria-label="${H(alt)}の縮小画像"></div>`;
+const gb=v=>v>=1?v.toFixed(1)+" GB":Math.round(v*1024)+" MB";
+const dur=s=>{s=Math.max(0,s);const m=Math.floor(s/60),x=Math.round(s%60);return m+":"+String(x).padStart(2,"0")};
+const mins=m=>m<1?"1分未満":m<60?`約${Math.round(m)}分`:`約${Math.floor(m/60)}時間${Math.round(m%60)}分`;
+const facts=f=>`${f.res}・${f.mbps}Mbps・${dur(f.dur)}・${gb(f.size)}`;
+const row=(f,extra="",noFacts=false)=>`<div class="row">${thumb(f.hue,f.name)}<div class="r-main"><div class="r-name">${H(f.name)}${extra}</div><div class="r-path">${H(f.dir)}</div></div>${noFacts?"<span></span>":`<div class="r-facts num">${facts(f)}</div>`}</div>`;
+const SAME='<span class="same" title="完全に同じ" aria-label="完全に同じ">=</span>';
+const LIKE='<span class="like" title="よく似ている" aria-label="よく似ている">≈</span>';
+const CHK='<span class="chk" title="念のため確認" aria-label="念のため確認">!</span>';
+const MARK=t=>t==="exact"?SAME:t==="similar"?LIKE:t==="single"?'<span class="pill" style="padding:0 6px">個別</span>':CHK;
+const TYPE=t=>t==="exact"?"完全に同じ":t==="similar"?"よく似ている":t==="single"?"個別に選んだファイル":"念のため確認";
+
+/* ---------- sample data: exactly 3 registered folders ---------- */
+const BASE_FOLDERS=[
+  {id:"A",name:"整理済み",path:"D:\\動画\\整理済み",drive:"D:",subs:["旅行","家族"],files:1240},
+  {id:"B",name:"ダウンロード",path:"E:\\ダウンロード",drive:"E:",subs:["動画","スマホ転送"],files:2310},
+  {id:"C",name:"バックアップ2023",path:"F:\\バックアップ\\2023",drive:"F:",subs:["夏","冬"],files:860}
+];
+const EXTRA_FOLDERS=[
+  {id:"D",name:"ビデオ",path:"C:\\Users\\user\\Videos",drive:"C:",subs:["キャプチャ"],files:320},
+  {id:"E",name:"昔の動画",path:"G:\\昔の動画",drive:"G:",subs:["2019"],files:1500}
+];
+const DRIVES={"C:":{total:512,used:430},"D:":{total:2000,used:1612},"E:":{total:1000,used:874},"F:":{total:2000,used:1350},"G:":{total:1000,used:700}};
+const BIG=["結婚式_4K_フル.mp4","ライブ全編_2160p.mkv","運動会_長回し.mov","旅行まとめ_未編集.mp4"];
+let fid=0;
+const mk=(name,folder,sub,res,mbps,d,size,date,hue)=>({id:"f"+(++fid),name,root:folder.id,drive:folder.drive,dir:folder.path+"\\"+sub,res,mbps,dur:d,size,date,hue});
+const titles=["夏の旅行_沖縄","運動会2023","結婚式ダイジェスト","子ども誕生日","京都_紅葉","ライブ映像_01","キャンプ夜景","卒業式","ドライブ_海岸線","ペットの猫","お正月_実家","花火大会","学芸会","スキー旅行","七五三","入学式"];
+function buildGroups(){
+  fid=0;const g=[];const [A,B,C]=BASE_FOLDERS;
+  titles.forEach((t,i)=>{
+    const h=hues[i%hues.length],size=0.4+((i*37)%23)/10,d=120+i*47,n=(i%4===0)?3:2;
+    const order=i%3===2?[B,C,A]:[A,B,C];
+    const files=[];
+    for(let k=0;k<n;k++){const fo=(i%5===1&&k===1)?order[0]:order[k];files.push(mk(k===0?t+".mp4":t+(k===1?" (1)":" - コピー")+".mp4",fo,fo.subs[i%2],"1920×1080",8,d,size,`202${1+(k*2+i)%3}-0${1+(i+k)%8}-1${k}`,h))}
+    g.push({id:"e"+i,type:"exact",files,status:"open",manual:false});
+  });
+  const sim=[["旅行_ハワイ","1920×1080",8.2,"1280×720",3.1,97],["発表会_ピアノ","3840×2160",24,"1920×1080",9.5,95],["バーベキュー","1920×1080",7.9,"1920×1080",4.2,93],["水族館","1280×720",4.0,"1920×1080",6.8,92],["雪まつり","1920×1080",8.0,"1920×1080",8.0,91],["プール","1920×1080",6.1,"854×480",1.4,90],["動物園","1920×1080",8.4,"1920×1080",5.0,89],["お祭り","1280×720",3.5,"1280×720",3.3,88],["テレビ録画_特番","1920×1080",12,"1920×1080",9.0,76],["旅行_まとめ","1920×1080",8,"1280×720",3,71],["家族集合","1920×1080",8,"1920×1080",8,66],["練習風景","1280×720",3,"1280×720",3,62]];
+  sim.forEach((s,i)=>{
+    const h=hues[(i+5)%hues.length],dA=240+i*33,dB=dA-(i%3===0?12:i%3===1?0:95),other=i%2?B:C;
+    const a=mk(s[0]+".mp4",A,A.subs[i%2],s[1],s[2],dA,s[2]*dA/8/1024,"2022-05-1"+i%9,h);
+    const b=mk(s[0]+"_編集版.mp4",other,other.subs[i%2],s[3],s[4],dB,s[4]*dB/8/1024,"2024-02-0"+(1+i%8),h);
+    const files=[a,b];if(i===1)files.push(mk(s[0]+"_4K.mkv",B,B.subs[0],"3840×2160",18,dA,18*dA/8/1024,"2023-11-02",h));
+    g.push({id:"s"+i,type:s[5]>=85?"similar":"check",match:s[5],files,status:"open",manual:false});
+  });
+  return g;
+}
+const FAILED_SEED=[
+  {name:"古いビデオ_1998.avi",dir:"F:\\バックアップ\\2023\\冬",reason:"動画を読み込めませんでした（ファイルが壊れている可能性があります）"},
+  {name:"録画_途中まで.mp4",dir:"E:\\ダウンロード\\動画",reason:"ファイルの最後まで読めませんでした（コピーの途中の可能性があります）"},
+  {name:"家族旅行_未整理.mov",dir:"D:\\動画\\整理済み\\家族",reason:"アクセスが許可されていません"}
+];
+const HISTORY_SEED=[
+  {date:"2026-09-20 21:14",count:18,size:6.2,dest:"recycle",drive:"E:"},
+  {date:"2026-09-12 08:40",count:25,size:11.8,dest:"recycle",drive:"F:"},
+  {date:"2026-09-03 19:02",count:9,size:6.6,dest:"move",drive:"D:"}
+];
+
+/* ---------- state ---------- */
+let S;
+const S0={autoCheck:true};
+function newFolder(f,rank,scan){return {...f,rank,scan,started:Date.now(),stage:scan>=100?4:0}}
+function fresh(state){
+  const F=BASE_FOLDERS.map((f,i)=>newFolder(f,i+1,state==="scan"?(i===0?100:i===1?2:0):100));
+  S={state,folders:state==="first"?[]:F,groups:buildGroups(),queue:[],sel:null,
+     history:(state==="clean"||state==="return")?HISTORY_SEED.slice():[],
+     bin:{},dest:"recycle",quarantine:"",failed:state==="first"?[]:FAILED_SEED.map(x=>({...x})),judgments:[],firstRun:state==="scan",
+     retention:{file:"30",folder:"90",drive:""},criteria:["folder","date"],dateDir:"old",autoCheck:S0.autoCheck,check:null,lastCheck:state==="first"?"":"たった今",newFiles:0,
+     open:{exact:true,similar:true,check:false,queue:false},peek:false,overlay:null,fmenu:null,prevNew:0,scanTicks:0};
+  S.history.forEach(h=>{if(h.dest==="recycle")S.bin[h.drive]=(S.bin[h.drive]||0)+h.size});
+  S.groups.forEach(g=>g.keep=autoKeep(g));
+  if(state==="clean")S.groups.forEach(g=>g.status="done");
+  if(state==="return"){S.groups.forEach((g,i)=>{if(i%4)g.status="done";else g.pendingNew=true});S.lastCheck="3日前";
+    if(S.autoCheck)startCheck(true);}
+  $$(".proto button[data-state]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.state===state));$("#proto-offline").setAttribute("aria-pressed","false");
+  if(state==="scan")tickScan();
+  render();
+}
+const byId=id=>S.groups.find(g=>g.id===id);
+const folderOf=f=>S.folders.find(x=>x.id===f.root);
+const oldest=fs=>fs.slice().sort((a,b)=>a.date.localeCompare(b.date))[0];
+const px=f=>{const [w,h]=f.res.split("×").map(Number);return w*h};
+const rankOf=f=>{const fo=S?folderOf(f):null;return fo?fo.rank:99};
+const critName=c=>c==="folder"?"フォルダーの優先順位が高い方":(S.dateDir==="old"?"更新日時が古い方":"更新日時が新しい方");
+function pickExact(files){
+  let c=files.slice();
+  for(const k of (S?S.criteria:["folder","date"])){
+    if(c.length<2)break;
+    if(k==="folder"){const best=Math.min(...c.map(rankOf));c=c.filter(f=>rankOf(f)===best)}
+    else{c.sort((a,b)=>(S&&S.dateDir==="new")?b.date.localeCompare(a.date):a.date.localeCompare(b.date));c=[c[0]]}
+  }
+  return c[0];
+}
+function autoKeep(g){
+  if(g.type==="exact")return pickExact(g.files).id;
+  return g.files.slice().sort((a,b)=>px(b)-px(a)||b.mbps-a.mbps||b.dur-a.dur)[0].id;
+}
+function reapplyRule(){S.groups.forEach(g=>{if(g.type==="exact"&&g.status==="open"&&!g.manual)g.keep=autoKeep(g)})}
+function keepReason(g){
+  if(g.manual)return "あなたが選んだファイル（ルールより優先されます）";
+  if(g.type!=="exact")return "解像度・ビットレート・長さが最も良い方";
+  const k=g.files.find(f=>f.id===g.keep),fo=folderOf(k);
+  const dateTxt=S.dateDir==="old"?"更新日時が最も古い":"更新日時が最も新しい";
+  if(S.criteria[0]==="folder")return new Set(g.files.map(rankOf)).size>1?`優先順位 ${fo.rank}位のフォルダー（${fo.name}）にあるため`:`同じ順位のフォルダーなので、${dateTxt}方`;
+  return `${dateTxt}ため`;
+}
+const trashOf=g=>g.files.filter(f=>f.id!==g.keep);
+const sizeOf=gs=>gs.reduce((a,g)=>a+trashOf(g).reduce((x,f)=>x+f.size,0),0);
+const liveRoots=()=>new Set(S.folders.map(f=>f.id));
+const scanDone=g=>g.files.every(f=>{const fo=folderOf(f);return !fo||fo.scan>=100});
+function visible(){const roots=liveRoots();return S.groups.filter(g=>!g.pendingNew&&g.files.filter(f=>roots.has(f.root)).length>=2&&scanDone(g))}
+const openOf=t=>visible().filter(g=>g.type===t&&g.status==="open");
+const qSize=()=>S.queue.reduce((a,q)=>a+q.file.size,0);
+const movedTotal=()=>S.history.reduce((a,h)=>a+h.size,0);
+const binTotal=()=>Object.values(S.bin).reduce((a,b)=>a+b,0);
+const scanningFolders=()=>S.folders.filter(f=>f.scan<100);
+const ranked=()=>S.folders.slice().sort((a,b)=>a.rank-b.rank);
+const ruleText=()=>ranked().map(f=>`${f.rank}. ${H(f.name)}`).join(" → ");
+const ruleHtml=()=>S.criteria.map((c,i)=>`<b>${"①②"[i]} ${critName(c)}</b>${c==="folder"?`<span class="num">（${ruleText()}）</span>`:""}`).join('<span class="sep">→</span>');
+
+/* ---------- queue ---------- */
+const offlineRoot=id=>{const fo=S.folders.find(x=>x.id===id);return !!(fo&&fo.offline)};
+const fileReady=f=>!offlineRoot(f.root);
+const groupReady=g=>g.files.every(fileReady);
+function enqueue(g){
+  if(!groupReady(g))return false;
+  const t=trashOf(g),ex=g.type==="exact",lim=ex?LIMIT_EXACT:LIMIT,cur=S.queue.filter(q=>(q.type==="exact")===ex).length;
+  if(cur+t.length>lim)return false;
+  t.forEach(file=>S.queue.push({gid:g.id,type:g.type,file,keep:g.files.find(f=>f.id===g.keep)}));g.status="queued";return true;
+}
+function enqueueSingle(f){
+  if(S.queue.some(q=>q.file.id===f.id)){toast("すでに整理リストに入っています");return}
+  if(S.queue.filter(q=>q.type!=="exact").length+1>LIMIT){toast(`個別のファイルとよく似ている動画は、1回${LIMIT}件までです。先に実行してください`);return}
+  S.queue.push({gid:"single-"+f.id,type:"single",file:f,keep:null});
+  toast(`「${f.name}」を整理リストに入れました（実行前に1件ずつ確認します）`);render();
+}
+function approveExact(){
+  let added=0,left=0,blocked=0;
+  openOf("exact").forEach(g=>{if(!groupReady(g)){blocked++;return}if(enqueue(g))added++;else left++});
+  S.overlay=null;
+  toast(`${added}組を整理リストに入れました${left?`。残り${left}組は次の回に入ります`:""}${blocked?`。接続待ちの${blocked}組は除きました`:""}`);render();
+}
+function dequeue(gid){S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open";render()}
+
+/* ---------- render ---------- */
+function render(){
+  const keep={};[".list",".detail",".side",".analysis"].forEach(k=>{const e=$(k);if(e)keep[k]=e.scrollTop});
+  renderInner();
+  Object.entries(keep).forEach(([k,v])=>{const e=$(k);if(e)e.scrollTop=v});
+  requestAnimationFrame(placeFolderMenu);
+}
+function placeFolderMenu(){
+  const m=$(".fmenu");if(!m||!S.fmenu)return;
+  const k=$(`[data-fmenu="${S.fmenu}"]`).getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
+  const left=Math.max(8,Math.min(k.left,window.innerWidth-w-8));
+  const top=k.bottom+4+h>window.innerHeight-8?Math.max(8,k.top-h-4):k.bottom+4;
+  m.style.left=left+"px";m.style.top=top+"px";
+  const side=$(".side");if(side)side.onscroll=()=>{if(S.fmenu){S.fmenu=null;render()}};
+}
+function renderInner(){
+  if(S.state==="first"){$("#screen").innerHTML=onboard();bindScreen();renderOverlay();return}
+  const vis=visible(),anyLeft=vis.some(g=>g.status!=="done");
+  const openLeft=vis.some(g=>g.status==="open");
+  const work=(S.check&&(S.detail==="check"||(!openLeft&&!S.queue.length)))?checkScreen():(S.detail==="scan"&&scanningFolders().length)?analysisScreen():(!anyLeft&&!scanningFolders().length&&!S.queue.length)?cleanScreen():(!vis.length&&scanningFolders().length)?analysisScreen():flow();
+  $("#screen").innerHTML=`<div class="body">${sidebar()}<div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="左の欄の幅を変える" tabindex="0"></div><div class="work">${work}</div></div>`;
+  bindScreen();renderOverlay();
+}
+function folderRow(f){
+  const n=S.folders.length;
+  const st=f.offline?`<span class="fstate off">接続されていません（${f.drive}）</span>`:f.scan<100?`<span class="fstate scan num">解析中 ${f.scan}%・${etaText(f)}</span><div class="fbar"><i style="width:${f.scan}%"></i></div>`:`<span class="fstate num">${f.files.toLocaleString()}本・解析済み</span>`;
+  return `<div class="fold" draggable="true" data-i="${f.rank-1}" tabindex="0" title="つかんで上下に動かすと優先順位を変えられます（Alt+↑↓でも動かせます）"><span class="fico" aria-hidden="true"></span>
+    <div style="min-width:0"><div class="fname"><span>${H(f.name)}</span><span class="rank num" title="完全に同じ動画を残すときの優先順位">優先${f.rank}</span></div><div class="fsub">${H(f.path)}</div>${st}</div>
+    <button class="kebab" data-fmenu="${f.id}" aria-label="${H(f.name)}の操作">⋯</button>
+    ${S.fmenu===f.id?`<div class="menu fmenu">
+      <button data-fact="up" data-id="${f.id}" ${f.rank===1?"disabled":""}>優先順位を上げる</button>
+      <button data-fact="down" data-id="${f.id}" ${f.rank===n?"disabled":""}>優先順位を下げる</button>
+      <hr><button data-fact="explorer" data-id="${f.id}">エクスプローラーで開く</button>
+      <button data-fact="files" data-id="${f.id}">中のファイルを一覧で見る</button>
+      <button data-fact="rescan" data-id="${f.id}">もう一度解析する</button>
+      <hr><button class="danger" data-fact="remove" data-id="${f.id}">整理対象から外す<small>元のファイルは削除されません</small></button></div>`:""}
+  </div>`;
+}
+function driveBlock(d,withQueue){
+  if(S.folders.some(f=>f.drive===d&&f.offline))return `<div class="drv"><div class="top"><b>${d}</b><span style="color:var(--danger)">接続されていません</span></div></div>`;
+  const x=DRIVES[d],bin=S.bin[d]||0,q=withQueue&&S.dest==="recycle"?S.queue.filter(z=>z.file.drive===d).reduce((a,z)=>a+z.file.size,0):0;
+  const free=x.total-x.used,after=free+bin;
+  const solid=x.used-bin-q;
+  return `<div class="drv"><div class="top"><b>${d}</b><span class="num">空き ${Math.round(free)} GB</span></div>
+    <div class="dbar" aria-hidden="true"><i style="width:${solid/x.total*100}%"></i><s style="width:${bin/x.total*100}%"></s><em style="width:${q/x.total*100}%"></em></div>
+    ${bin||q?`<div class="alt num"><span>${bin?`ごみ箱に ${gb(bin)}`:""}${q?`${bin?"・":""}整理リスト ${gb(q)}`:""}</span><span>空にすると 約${Math.round(after+q)} GB</span></div>`:""}</div>`;
+}
+function driveLegend(){return `<div class="legend"><span><i style="background:#5B6B80"></i>使用中</span><span><i style="background:var(--bin)"></i>ごみ箱の中</span><span><i style="background:var(--keep)"></i>整理リスト</span></div>`}
+function sidebar(){
+  const drives=[...new Set(S.folders.map(f=>f.drive))].sort();
+  return `<aside class="side" aria-label="整理するフォルダー">
+    <div class="side-sec"><div class="side-h"><h2>整理するフォルダー <span class="num">（${S.folders.length}）</span></h2>${S0.hint===false?'<button class="qmark" id="hint-open" title="「優先」の数字について" aria-label="「優先」の数字について">?</button>':""}<span class="sp"></span><button class="add" id="add-folder">＋ 追加</button></div>
+      <div class="checkline"><span>前回の確認：${S.check?"確認中…":S.lastCheck||"—"}</span><span class="sp"></span><button class="link" id="check-now" ${S.check?"disabled":""}>変更を確認</button></div>
+      ${ranked().map(folderRow).join("")}
+      ${S0.hint===false?"":`<div class="hintbox">重複は、ここにあるすべてのフォルダーをまとめて探します。「優先」の数字は、完全に同じ動画を残すときの順位です。フォルダーをつかんで上下に動かすと変えられます。 <button class="link" id="hint-close">閉じる</button></div>`}
+      ${S.failed.length?`<button class="sidelink warnlink" id="open-failed" style="width:100%"><span>⚠ 解析できなかったファイル</span><span class="num">${S.failed.length}本</span></button>`:""}
+    </div>
+    <div class="side-sec"><div class="side-h"><h2>ドライブの空き</h2><span class="sp"></span>${binTotal()?'<button class="link" data-open="bin">ごみ箱を開く</button>':""}</div><div class="drives">${drives.map(d=>driveBlock(d,true)).join("")}</div>${driveLegend()}</div>
+    <div class="side-foot">
+      <button class="sidelink" id="open-cleanup"><span>片付け（整理リスト・送り先・履歴）</span><span class="num">${S.queue.length?S.queue.length+"件":""}</span></button>
+      <button class="sidelink" id="open-files2"><span>すべてのファイル</span><span>›</span></button>
+    </div>
+  </aside>`;
+}
+function etaText(f){
+  const ticks=S.scanTicks;
+  if(f.scan<100&&ticks<4)return "残り時間を計算中";
+  return "残り"+mins((100-f.scan)*0.35);
+}
+function overallEta(){const sc=scanningFolders();if(!sc.length)return "";if(S.scanTicks<4)return "残り時間を計算しています…";return "残り "+mins(sc.reduce((a,f)=>a+(100-f.scan)*0.35,0))}
+function scanStrip(){
+  const sc=scanningFolders();if(!sc.length)return "";
+  const tot=S.folders.reduce((a,f)=>a+f.scan,0)/S.folders.length;
+  return `<div class="scanstrip" role="status"><span class="pulse" aria-hidden="true"></span><span>解析中：<b>${sc.map(f=>H(f.name)).join("、")}</b>・${overallEta()}（目安）</span><div class="bar"><i style="width:${tot}%"></i></div><span class="num">${Math.round(tot)}%</span><span style="flex:1"></span><button class="link" id="show-analysis">詳しく見る</button></div>`;
+}
+const STAGES=["ファイルの一覧","動画の情報","完全に同じか確認","よく似ているか確認"];
+function analysisScreen(){
+  const sc=S.folders,tot=sc.reduce((a,f)=>a+f.scan,0)/sc.length;
+  const cur=scanningFolders()[0],big=BIG[S.scanTicks%BIG.length];
+  const el=Math.floor(S.scanTicks*0.4*60/8);
+  return `<div class="analysis" aria-live="polite">
+    ${S.detail?'<div><button class="btn small" id="back-list">← 重複の一覧に戻る</button></div>':""}
+    <div class="an-head"><h2>解析しています</h2><span class="an-eta num">${overallEta()}<small>目安・ファイルの大きさで前後します</small></span></div>
+    <div class="bar" style="height:8px"><i style="width:${tot}%"></i></div>
+    ${cur?`<div class="current"><span class="pulse" aria-hidden="true"></span><span>いま解析中: <b>${big}</b>（${(8+S.scanTicks%11).toFixed(1)} GB）・最終更新 数秒前</span></div>`:""}
+    <div class="an-card">${sc.map(f=>{const done=Math.round(f.files*f.scan/100);const stage=f.scan>=100?4:f.scan<15?0:f.scan<40?1:f.scan<75?2:3;
+      return `<div class="an-row"><span class="fico" aria-hidden="true"></span><div><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div>
+      <div class="stages">${STAGES.map((s,i)=>`<span class="${i<stage?"ok":i===stage&&f.scan<100?"now":""}">${i<stage?"✓ ":""}${s}</span>`).join("")}</div>
+      <div class="bar" style="margin-top:6px"><i style="width:${f.scan}%"></i></div></div>
+      <div class="num" style="text-align:right;font-size:12px;color:var(--muted)">${done.toLocaleString()} / ${f.files.toLocaleString()}本<br>${f.scan>=100?'<span style="color:var(--keep)">完了</span>':etaText(f)}</div></div>`}).join("")}</div>
+    <div class="reassure">
+      <span>大きな動画（4Kや長時間の録画）は1本に数分かかることがあります。数字が止まって見えても、左の点が点滅していれば処理は続いています。</span>
+      <span>見つかった重複は、解析が終わるのを待たずにこの画面に表示され、すぐ片付けを始められます。</span>
+      <span>アプリを閉じても大丈夫です。次に開いたときに続きから解析します。</span>
+    </div>
+    <div class="actions"><button class="btn" id="notify">終わったら通知する</button></div>
+  </div>`;
+}
+const readyExact=()=>openOf("exact").filter(groupReady);
+/* Only the cleanup list is shown while it waits to be run: approved identical files are in it, or nothing else is left to choose. */
+const runOnly=()=>S.queue.length>0&&!readyExact().length&&(S.queue.some(q=>q.type==="exact")||!visible().some(g=>g.status==="open"&&groupReady(g)));
+function stepper(){
+  const ex=readyExact().length,qEx=S.queue.some(q=>q.type==="exact");
+  const sim=openOf("similar").length+openOf("check").length,qOt=S.queue.some(q=>q.type!=="exact");
+  const s1=ex?"on":"ok",s2=ex?"":qEx?"on":"ok",s3=s1==="ok"&&s2==="ok"?(sim||qOt?"on":"ok"):"";
+  const L=[["1","完全に同じ：ルールを承認",s1],["2","整理リストを実行",s2],["3","よく似ている：1組ずつ確認",s3]];
+  return `<div class="steps" aria-label="整理の手順">${L.map(([n,t,c],i)=>`${i?'<i aria-hidden="true">→</i>':""}<span class="${c}" ${c==="on"?'aria-current="step"':""}>${c==="ok"?"✓":n}. ${t}</span>`).join("")}</div>`;
+}
+function nextAction(){
+  const vis=visible(),ex=readyExact(),sim=openOf("similar").concat(openOf("check")),openAll=vis.filter(g=>g.status==="open"),offN=openAll.filter(g=>!groupReady(g)).length;
+  const stats=`重複 <b class="num">${openAll.length}組</b>・片付けられる <b class="num">${gb(sizeOf(openAll))}</b>・これまでに片付けた <b class="num">${gb(movedTotal())}</b>${binTotal()?`（うちごみ箱の中 ${gb(binTotal())}）`:""}${offN?`・接続待ち ${offN}組`:""}`;
+  let t,d,b="",id="",cls="primary big";
+  if(S.prevNew&&!S.queue.length&&openAll.length){t=`前回から新しい重複が ${S.prevNew}組 見つかりました`;d=`起動時の確認で、新しいファイル ${S.newFiles}本 を解析しました。新しく見つかった組が一覧に並んでいます。`;b="最初の組を見る";id="go-first"}
+  else if(ex.length){
+    t=`${SAME} 完全に同じファイルが ${ex.length}組 あります（${gb(sizeOf(ex))}）`;
+    d="残す方は、決めてあるルールで選んであります。下のボタンで、ルールと各フォルダーから片付ける本数を確かめてから承認します。";
+    b="ルールを確認して承認";id="approve";
+  }
+  else if(runOnly()){t=`整理リストに ${S.queue.length}件（${gb(qSize())}）あります`;d="一覧には、これから片付けるものだけを表示しています。「確認して実行」で、もう一度内容を確かめてから片付けます。";b="確認して実行 →";id="go-run"}
+  else if(sim.length){t=`よく似ている動画が ${sim.length}組 あります`;d="別々のファイルなので、右で見比べて残す方を選び、「この組を整理リストへ」を押してください。";if(S.queue.length)d+=`整理リストに入れた ${S.queue.length}件は、下の「確認して実行」でまとめて片付けます。`}
+  else{t=scanningFolders().length?"見つかった重複は片付きました。解析の続きを待っています":"残す方を選ぶ組はありません";d=S.queue.length?"整理リストを実行すると完了です。":""}
+  return `<section class="next" aria-live="polite"><div class="top">${stepper()}<span class="sp"></span><span class="stats">${stats}</span></div><div class="t">${t}</div><div class="d">${d}</div>${b?`<div class="go"><button class="btn ${cls}" id="${id}">${b}</button></div>`:""}</section>`;
+}
+/* Identical copies differ only in where they are, so one line per group: the name once, then the folders. */
+function compactRow(g,mark){
+  const k=g.files.find(f=>f.id===g.keep),t=trashOf(g),free=gb(t.reduce((a,f)=>a+f.size,0));
+  const fname=f=>{const x=folderOf(f);return x?x.name:f.drive};
+  const loc=(f,c)=>`<span class="loc ${c}"><em>${c==="k"?"残す":"片付ける"}</em>${H(fname(f))}${c==="t"&&f.root===k.root?"（同じフォルダー）":""}${fileReady(f)?"":"・未接続"}</span>`;
+  const cnt=g.type==="exact"?`<span class="cnt num">×${g.files.length}</span>`:`<span class="cnt num">一致率 ${g.match}%</span>`;
+  const tip=g.files.map(f=>`${f.id===g.keep?"残す":"片付ける"}: ${f.dir}\\${f.name}`).join("\n");
+  const pills=`${g.manual?' <span class="pill manual">手動で選択</span>':""}${groupReady(g)?"":' <span class="pill">接続すると片付けられます</span>'}`;
+  return `<div class="group one ${S.sel===g.id?"sel":""}" data-g="${g.id}" tabindex="0" role="button" title="${H(tip)}" aria-label="${H(k.name)} の組">${thumb(k.hue,k.name)}<div class="r-main"><div class="r-name">${mark?MARK(g.type)+" ":""}${H(k.name)}${cnt}${pills}</div><div class="locs">${loc(k,"k")}${t.map(f=>loc(f,"t")).join("")}</div></div><div class="r-right num"><b>${free}</b>${k.res}・${dur(k.dur)}</div></div>`;
+}
+function singleRow(q){
+  const fo=folderOf(q.file);
+  return `<div class="group one single">${thumb(q.file.hue,q.file.name)}<div class="r-main"><div class="r-name">${MARK("single")} ${H(q.file.name)}</div><div class="locs"><span class="loc t"><em>片付ける</em>${H(fo?fo.name:q.file.drive)}</span></div></div><div class="r-right num"><b>${gb(q.file.size)}</b><button class="link" data-unq="${q.gid}">外す</button></div></div>`;
+}
+function fullGroup(g,type){
+  const free=gb(trashOf(g).reduce((a,f)=>a+f.size,0));
+  const head=`${MARK(type)}<span class="num">一致率 ${g.match}%・${free} 片付けられる</span>`;
+  return `<div class="group ${S.sel===g.id?"sel":""}" data-g="${g.id}" tabindex="0" role="button" aria-label="${H(g.files.find(f=>f.id===g.keep).name)} の組">
+    <div class="g-head">${head}<span class="sp"></span>${g.manual?'<span class="pill manual">手動で選択</span>':""}${groupReady(g)?"":'<span class="pill">接続すると片付けられます</span>'}</div>
+    ${g.files.map(f=>row(f,f.id===g.keep?'<span class="pill keep r-tag">残す</span>':'<span class="pill trash r-tag">片付ける</span>')).join("")}</div>`;
+}
+function groupSection(type,name,desc){
+  const gs=visible().filter(g=>g.type===type&&g.status==="open");
+  if(!gs.length)return "";
+  const open=S.open[type],n=gs.length;
+  const body=open?gs.map(g=>type==="exact"?compactRow(g,false):fullGroup(g,type)).join(""):"";
+  return `<section><div class="sect-h"><button class="caret" data-toggle="${type}" aria-expanded="${open}" aria-label="${name}を${open?"閉じる":"開く"}">${open?"▾":"▸"}</button><span class="name">${MARK(type)}${name}</span><span class="meta num">${n}組・${desc}</span><span class="sp"></span>${type==="exact"?'<span class="pill keep">ルールで選び済み</span>':'<span class="pill info">1組ずつ確認</span>'}</div>${body}</section>`;
+}
+function queuedGroups(){return [...new Set(S.queue.map(q=>q.gid))].map(id=>({id,g:byId(id),q:S.queue.filter(x=>x.gid===id)}))}
+function queueSection(forceOpen){
+  const items=queuedGroups(),open=forceOpen||S.open.queue;
+  const caret=forceOpen?'<span class="caret" aria-hidden="true"></span>':`<button class="caret" data-toggle="queue" aria-expanded="${open}" aria-label="整理リストを${open?"閉じる":"開く"}">${open?"▾":"▸"}</button>`;
+  return `<section><div class="sect-h">${caret}<span class="name"><span class="pill trash">整理リスト</span>これから片付けるもの</span><span class="meta num">${items.length}組・${S.queue.length}件・${gb(qSize())}</span><span class="sp"></span></div>${open?items.map(x=>x.g?compactRow(x.g,true):singleRow(x.q[0])).join(""):""}</section>`;
+}
+function laterLine(){
+  const sim=openOf("similar").length,chk=openOf("check").length,off=openOf("exact").filter(g=>!groupReady(g)).length;
+  const parts=[sim?`よく似ている動画 ${sim}組`:"",chk?`念のため確認 ${chk}組`:"",off?`接続待ちの完全に同じ ${off}組`:""].filter(Boolean).join("・");
+  if(!parts)return "";
+  return `<div class="later">${sim||chk?LIKE:SAME}<span><b>${parts}</b> は、実行のあとで確認します。</span><span class="sp"></span><button class="link" id="peek">${S.peek?"隠す":"先に見る"}</button></div>`;
+}
+const sections=()=>groupSection("exact","完全に同じ","中身がすべて同じ")+groupSection("similar","よく似ている","一致率85%以上")+groupSection("check","念のため確認","一致率85%未満");
+/* The groups in the list, top to bottom: what J/K walk through and what is selected first. */
+function listedGroups(){
+  const qg=queuedGroups().map(x=>x.g).filter(Boolean),order=["exact","similar","check"];
+  const open=visible().filter(g=>g.status==="open"&&S.open[g.type]).sort((a,b)=>order.indexOf(a.type)-order.indexOf(b.type));
+  if(runOnly())return S.peek?qg.concat(open):qg;
+  return (S.open.queue?qg:[]).concat(open);
+}
+function fileMenuBtn(f,ctx){return `<button class="kebab" data-filemenu="${f.id}" data-ctx="${ctx}" aria-label="${H(f.name)}の操作（再生・エクスプローラーで表示）">⋯</button>`}
+function detailPane(){
+  const g=byId(S.sel);
+  if(!g||!visible().includes(g))return `<div class="empty">左の一覧から組を選ぶと、ここで見比べられます。<div class="keys">キー操作：J・K 次・前の組／1・2・3 残す方を選ぶ／Enter 整理リストへ／N 重複ではない</div></div>`;
+  const ready=groupReady(g),L="ABCDEFG",fs=g.files;
+  const opts=fs.map((f,i)=>`<div class="optw"><label class="opt ${f.id===g.keep?"keep":""}"><input type="radio" name="keep-${g.id}" value="${f.id}" ${f.id===g.keep?"checked":""} ${g.status!=="open"?"disabled":""}><div>${row(f,`${g.type!=="exact"?` <span class="pill">${L[i]}</span>`:""}${f.id===g.keep?'<span class="pill keep r-tag">残す</span>':'<span class="pill trash r-tag">片付ける</span>'}${fileReady(f)?"":'<span class="pill r-tag" style="color:var(--danger)">未接続</span>'}`,true)}${f.id===g.keep?`<div class="why">${keepReason(g)}</div>`:""}</div></label>${fileMenuBtn(f,"detail")}</div>`).join("");
+  const off=ready?"":`<div class="note warn">接続されていないドライブのファイルが含まれています。ドライブを接続すると片付けられます。</div>`;
+  const keys=`<div class="keys">キー操作：${fs.map((f,i)=>i+1).join("・")} 残す方を選ぶ${g.type!=="exact"?"／Enter 整理リストへ／N 重複ではない":""}／J・K 次・前の組</div>`;
+  if(g.type==="exact")return `<h2 class="d-title"><span class="same lg">=</span>完全に同じファイル</h2><p class="d-sub">中身がすべて同じです（<span class="num">${facts(fs[0])}</span>）。画質も同じなので、置き場所で選びます。</p><div class="choice" role="radiogroup" aria-label="残すファイル">${opts}</div>${off}
+    <div class="note ${g.manual?"ok":""}">${g.manual?"この組はあなたが選び直しました。ルールを承認しても、ルールを変更しても、この選択はそのまま残ります。":"残す方を変えたい場合は、上で選び直してください。選び直した組は、ルールを承認してもその選択が残ります。"}</div>
+    <div class="actions">${g.manual&&g.status==="open"?`<button class="btn small" data-reset="${g.id}">ルールの選択に戻す</button>`:""}${g.status==="queued"?`<button class="btn" data-unq="${g.id}">整理リストから外す</button>`:""}${g.status==="open"?'<button class="btn small ghost" id="edit-rule4">残す方のルールを見る・変える</button>':""}</div>${keys}`;
+  const bestIdx=fn=>{const v=fs.map(fn),m=Math.max(...v);return v.every(x=>x===m)?[]:v.map(x=>x===m)};
+  const r1=bestIdx(px),r2=bestIdx(f=>f.mbps),r3=bestIdx(f=>f.dur);
+  const cell=(arr,i,txt)=>`<td class="${arr[i]?"best":""}">${txt}</td>`;
+  const durs=fs.map(f=>f.dur),dd=Math.max(...durs)-Math.min(...durs);
+  const warn=[];if(dd>5)warn.push(`長さが最大 ${dur(dd)} 違います。一部にしか無い場面があるかもしれません。`);if(new Set(fs.map(f=>f.res)).size>1)warn.push("解像度が違います。");
+  const fr=[0.1,0.45,0.8].map((p,i)=>`<div class="frame">${thumb((fs[0].hue+i*25)%360,"一致した場面")}<span class="num">${fs.map((f,k)=>`${L[k]} ${dur(f.dur*p)}`).join(" ／ ")}</span></div>`).join("");
+  const title=g.type==="similar"?'<span class="like lg">≈</span>よく似ている動画':'<span class="chk lg">!</span>念のため確認が必要な動画';
+  return `<h2 class="d-title">${title}</h2><p class="d-sub">一致率 <span class="num">${g.match}%</span>。別々のファイルなので、${fs.length}本を見比べて残す方を選んでください。</p>
+    <div class="choice" role="radiogroup" aria-label="残すファイル">${opts}</div>${off}
+    <div class="h3">ファイル情報</div>
+    <div style="overflow-x:auto"><table class="facts num"><tr><th></th>${fs.map((f,i)=>`<th>${L[i]}</th>`).join("")}</tr>
+      <tr><th>解像度</th>${fs.map((f,i)=>cell(r1,i,f.res)).join("")}</tr>
+      <tr><th>ビットレート</th>${fs.map((f,i)=>cell(r2,i,f.mbps+" Mbps")).join("")}</tr>
+      <tr><th>長さ</th>${fs.map((f,i)=>cell(r3,i,dur(f.dur))).join("")}</tr>
+      <tr><th>サイズ</th>${fs.map(f=>`<td>${gb(f.size)}</td>`).join("")}</tr>
+      <tr><th>形式</th>${fs.map(f=>`<td>${f.name.split(".").pop().toUpperCase()}</td>`).join("")}</tr>
+      <tr><th>更新日</th>${fs.map(f=>`<td>${f.date}</td>`).join("")}</tr></table></div>
+    ${warn.map(w=>`<div class="note warn">${w}</div>`).join("")}
+    <div class="h3">一致した場面</div><div class="frames">${fr}</div>
+    <div class="h3">並べて再生</div><div class="player" style="grid-template-columns:repeat(${Math.min(fs.length,3)},1fr)">${fs.map((f,i)=>`<div style="position:relative">${thumb((f.hue+i*10)%360,L[i])}<span class="plabel">${L[i]}</span></div>`).join("")}</div>
+    <div class="scrub"><button class="btn small" id="play">▶ 同時に再生</button><div class="track" aria-hidden="true"><i id="scrub" style="width:12%"></i></div><span style="color:var(--muted);font-size:12px">一致した場面から</span></div>
+    <div class="actions">${g.status==="open"?`<button class="btn primary" data-enq="${g.id}" ${ready?"":"disabled"}>この組を整理リストへ</button><button class="btn ghost" data-skip="${g.id}">重複ではない</button>`:`<button class="btn" data-unq="${g.id}">整理リストから外す</button>`}</div>${keys}`;
+}
+function flow(){
+  const vis=visible(),only=runOnly(),lst=listedGroups();
+  if(!lst.some(g=>g.id===S.sel))S.sel=lst.length?lst[0].id:null;
+  const list=!vis.length&&!S.queue.length?`<div class="empty">この条件の重複はありません。</div>`:only?laterLine()+queueSection(true)+(S.peek?sections():""):(S.queue.length?queueSection(false):"")+sections();
+  return `${checkStrip()}${scanStrip()}${nextAction()}
+  <div class="main"><div class="list" aria-label="重複の一覧">
+    ${list}
+  </div><div class="detail" aria-live="polite">${detailPane()}</div></div>
+  ${actionbar()}`;
+}
+function destLabel(){return S.dest==="recycle"?"Windowsのごみ箱":"保管フォルダー"}
+function actionbar(){
+  const ex=S.queue.filter(q=>q.type==="exact").length,ot=S.queue.length-ex;
+  const pct=Math.max(ex/LIMIT_EXACT,ot/LIMIT)*100,near=pct>=80;
+  /* The limit only matters near it; the run button is left to the card above when that card already offers it. */
+  return `<div class="actionbar"><div><div class="sum">整理リスト <b class="num">${S.queue.length}件</b>・<b class="num">${gb(qSize())}</b></div><div class="cap">送り先: ${destLabel()} <button class="link" data-open="${S.dest==="recycle"?"bin":"vault"}">開く</button>${near?`・<span style="color:var(--warn)">1回に 完全に同じ${LIMIT_EXACT}件／ほか${LIMIT}件まで（あと ${Math.max(0,LIMIT_EXACT-ex)}件／${Math.max(0,LIMIT-ot)}件）</span>`:""}</div></div>${near?`<div class="meter" aria-hidden="true"><i style="width:${pct}%"></i></div>`:""}<span class="sp"></span><button class="btn ghost" id="open-cleanup2">リストと送り先</button>${runOnly()?"":`<button class="btn outline" id="run" ${S.queue.length?"":"disabled"}>確認して実行 →</button>`}</div>`;
+}
+function onboard(){
+  return `<div class="onboard"><div class="drop"><div class="bigico" aria-hidden="true"></div><h2>整理したい動画のフォルダーを追加してください</h2><p>追加すると自動で解析し、登録したフォルダー全体から、同じ動画やよく似た動画を見つけます。元のファイルは、あなたが承認するまで変更しません。</p><button class="btn primary" id="first-add">フォルダーを選ぶ</button><p style="font-size:12px">フォルダーをここへドラッグしても追加できます</p></div></div>`;
+}
+function cleanScreen(){
+  const bin=binTotal();
+  return `<div class="onboard"><div class="drop" style="border-style:solid"><div class="bigstat num">${gb(movedTotal())}</div><h2>重複はすべて片付きました</h2><p>${S.autoCheck?"次に起動したとき、フォルダーの変更を自動で確認して、新しい重複だけをお知らせします。":`起動時の自動確認はオフです（前回の確認：${S.lastCheck||"—"}）。新しい動画を追加したら「変更を確認」を押してください。`}</p><p>これまでに片付けた量です。${bin?`このうち ${gb(bin)} はまだごみ箱の中にあります。ごみ箱を空にすると、その分ドライブが空きます。`:""}</p><div class="actions">${bin?'<button class="btn" data-open="bin">ごみ箱を開く</button>':""}<button class="btn" id="check-now2">いま変更を確認</button><button class="btn" id="open-cleanup3">片付けの履歴を見る</button><button class="btn primary" id="add-folder2">フォルダーを追加</button></div></div></div>`;
+}
+
+/* ---------- overlays ---------- */
+function renderOverlay(){
+  const o=S.overlay,el=$("#overlay");
+  if(!o){el.innerHTML="";return}
+  el.innerHTML={files:filesDrawer,cleanup:cleanupDrawer,add:addModal,remove:removeModal,settings:settingsModal,run:runModal,approve:approveModal,failed:failedDrawer,player:playerModal,prio:prioModal}[o.kind]();
+  bindOverlay();
+}
+function filesDrawer(){
+  const all=S.groups.flatMap(g=>g.files.map(f=>({f,g}))).filter(x=>S.folders.some(fo=>fo.id===x.f.root));
+  const cur=S.overlay.folder||null,list=all.filter(x=>!cur||x.f.root===cur).slice(0,40);
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="すべてのファイル"><div class="drawer-h"><b>すべてのファイル</b><span class="sp"></span><button class="btn" data-close>閉じる</button></div>
+  <div class="filter" style="flex-wrap:wrap">フォルダー:${[null,...ranked()].map(fo=>`<button class="chip" style="${(fo?fo.id:null)===cur?"border-color:var(--accent)":""}" data-ff="${fo?fo.id:""}">${fo?H(fo.name):"すべて"}</button>`).join("")}</div>
+  <div class="drawer-b files">${list.map(x=>`<div class="optw" style="padding-right:10px">${row(x.f,(x.g.status==="done"?"":` ${MARK(x.g.type)} <button class="link" data-jump="${x.g.id}">重複の組を見る</button>`)+(S.queue.some(q=>q.file.id===x.f.id)?' <span class="pill trash">整理リスト</span>':""))}${fileMenuBtn(x.f,"files")}</div>`).join("")}</div></aside></div>`;
+}
+function vaultError(p){
+  if(!/^[A-Za-z]:\\/.test(p))return "「D:\\重複の保管」のように、ドライブから始まる場所を入力してください";
+  const lp=p.toLowerCase().replace(/\\+$/,"");
+  const f=S.folders.find(x=>{const r=x.path.toLowerCase();return lp===r||lp.startsWith(r+"\\")});
+  return f?`「${f.name}」の中には作れません。保管したファイルがまた重複として見つかってしまうため、整理するフォルダーの外を指定してください`:"";
+}
+function vaultForm(){
+  const o=S.overlay;
+  return `<div class="vaultf"><label for="vault-path" style="font-size:12px;color:var(--muted)">保管フォルダーの場所（ここに新しく作ります）</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><input type="text" id="vault-path" placeholder="例: D:\\重複の保管" value="${H(o.vaultDraft||"")}" class="tin"><button class="btn small" id="vault-browse">参照…</button><button class="btn small primary" id="vault-ok">フォルダーを作る</button><button class="btn small ghost" id="vault-cancel">やめる</button></div>
+    ${o.vaultErr?`<div class="note warn">${H(o.vaultErr)}</div>`:""}
+    <div style="font-size:11px;color:var(--faint)">整理するフォルダーの中には作れません。</div></div>`;
+}
+function cleanupDrawer(){
+  const groups={};S.queue.forEach(q=>{(groups[q.gid]=groups[q.gid]||{type:q.type,items:[]}).items.push(q)});
+  const drives=[...new Set(S.folders.map(f=>f.drive))].sort();
+  const ex=S.queue.filter(q=>q.type==="exact").length,ot=S.queue.length-ex,vault=S.quarantine,o=S.overlay;
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="片付け"><div class="drawer-h"><b>片付け</b><span class="sp"></span><button class="btn" data-close>閉じる</button></div><div class="drawer-b">
+  <section class="dsec"><h3>今回の整理リスト <span class="pill num">完全に同じ ${ex}/${LIMIT_EXACT}件・ほか ${ot}/${LIMIT}件・${gb(qSize())}</span><span class="sp"></span>${S.queue.length?'<button class="btn small ghost" id="clear-q">すべて外す</button>':""}</h3>
+    ${S.queue.length?Object.entries(groups).map(([gid,x])=>x.items.map(q=>`<div class="qrow">${row(q.file," "+MARK(x.type))}<button class="btn small ghost" data-unq="${gid}">外す</button></div>`).join("")).join(""):'<p style="color:var(--muted);margin:0">まだ何も入っていません。重複の一覧で残す方を選ぶと、ここに入ります。</p>'}
+  </section>
+  <section class="dsec"><h3>送り先</h3><div class="dest">
+    <label class="${S.dest==="recycle"?"on":""}"><input type="radio" name="dest" value="recycle" ${S.dest==="recycle"?"checked":""}><span>Windowsのごみ箱へ移動 <button class="link" data-open="bin">ごみ箱を開く</button><small>ごみ箱から元に戻せます。ドライブの容量は、ごみ箱を空にしたときに空きます。</small></span></label>
+    <label class="${S.dest==="move"?"on":""}" style="${vault?"":"cursor:default;opacity:.85"}"><input type="radio" name="dest" value="move" ${S.dest==="move"?"checked":""} ${vault?"":"disabled"}><span>保管フォルダーへ移動 ${vault?'<button class="link" data-open="vault">エクスプローラーで開く</button>':'<span class="pill">未設定</span>'}<small>${vault?`すぐには消さず <span class="num">${H(vault)}</span> にまとめて置きます。容量は空きません。`:"すぐには消さず、指定したフォルダーにまとめて置きます。使うには、先に場所を指定してフォルダーを作ってください。"}</small></span></label>
+    ${o.vaultEdit?vaultForm():`<div><button class="btn small" id="vault-edit">${vault?"保管フォルダーの場所を変える":"保管フォルダーの場所を指定して作る"}</button></div>`}
+  </div></section>
+  <section class="dsec"><h3>ドライブの空き（目安）</h3><div class="drives">${drives.map(d=>driveBlock(d,true)).join("")}</div>${driveLegend()}
+    <div class="note">ごみ箱の中の量は、Windowsのごみ箱から読み取った実際の値です。「空にすると」の数字は、ごみ箱を空にしたときの目安です。</div></section>
+  <section class="dsec"><h3>判断の記録 <span class="pill num">${S.judgments.length}件</span></h3>
+    ${S.judgments.length?S.judgments.map((j,i)=>{const g=byId(j.gid);return `<div class="qrow">${row(g.files[0]," "+MARK(g.type)+` <span class="pill">${j.what}</span>`)}<button class="btn small ghost" data-undo="${i}">取り消す</button></div>`}).join("")+'<div class="note">取り消すと、その組は重複の一覧に戻ります。</div>':'<p style="color:var(--muted);margin:0">「重複ではない」などの判断をすると、ここに記録されます。あとから取り消せます。</p>'}
+  </section>
+  <section class="dsec"><h3>これまでの片付け <span class="pill num">合計 ${gb(movedTotal())}</span></h3>
+    ${S.history.length?`<table class="hist num"><tr><th>日時</th><th>件数</th><th>容量</th><th>送り先</th><th></th></tr>${S.history.map((h,i)=>`<tr><td>${h.date}</td><td>${h.count}件</td><td>${gb(h.size)}</td><td>${h.dest==="recycle"?"ごみ箱":"保管フォルダー"} <button class="link" data-open="${h.dest==="recycle"?"bin":"vault"}">開く</button></td><td><button class="link" data-hist="${i}">移動したファイル</button></td></tr>`).join("")}</table><div class="note">元に戻したいときは、ごみ箱（または保管フォルダー）から戻してください。このアプリでは元に戻せません。</div>`:'<p style="color:var(--muted);margin:0">まだ片付けた記録はありません。</p>'}
+  </section></div></aside></div>`;
+}
+function approveModal(){
+  const all=openOf("exact"),ready=all.filter(groupReady),blocked=all.length-ready.length;
+  const room=LIMIT_EXACT-S.queue.filter(q=>q.type==="exact").length;
+  let cnt=0;const take=[];ready.forEach(g=>{const n=trashOf(g).length;if(cnt+n<=room){cnt+=n;take.push(g)}});
+  const man=take.filter(g=>g.manual).length,showList=!!S.overlay.showList;
+  const per=ranked().map(fo=>({fo,n:0,size:0,same:0,cross:0}));
+  take.forEach(g=>{const k=g.files.find(f=>f.id===g.keep);trashOf(g).forEach(f=>{const x=per.find(p=>p.fo.id===f.root);x.n++;x.size+=f.size;if(f.root===k.root)x.same++;else x.cross++})});
+  const maxN=Math.max(...per.map(x=>x.n),1);
+  const top=per.find(x=>x.fo.rank===1&&x.cross);
+  const chip=f=>`<span class="fchip">${H(folderOf(f).name)}</span>`;
+  const grow=g=>{const k=g.files.find(f=>f.id===g.keep),t=trashOf(g);
+    return `<div class="agrp"><div class="agrp-k">${thumb(k.hue,k.name)}<div class="r-main"><div class="r-name"><span class="pill keep" style="margin-right:6px">残す</span>${H(k.name)}</div><div class="r-path">${chip(k)} ${H(k.dir)}</div></div>${g.manual?'<span class="pill manual">手動で選択</span>':""}</div>
+      <div class="agrp-t">${t.map(f=>`<div class="r-path" style="font-size:12px"><span class="pill trash" style="margin-right:6px">片付ける</span>${chip(f)} ${H(f.dir)}\\${H(f.name)}<span class="num" style="margin-left:6px;color:var(--muted)">${gb(f.size)}</span>${f.root===k.root?'<span class="pill" style="margin-left:6px;font-size:10px">同じフォルダー内</span>':""}</div>`).join("")}</div></div>`};
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="ルールを確認して承認"><div class="m-h"><h2>${SAME}ルールを確認して承認</h2><p>承認すると、片付けるファイルがまとめて整理リストに入ります。この時点ではファイルは変更されません。</p></div>
+  <div class="m-b">
+    <div class="h3" style="margin-top:0">残す方のルール</div>
+    <div class="rulebox" style="margin:0 0 14px"><span>${ruleHtml()}</span><span style="flex:1"></span><button class="link" id="edit-rule2">ルールを変更</button></div>
+    <p class="bigline num"><b>${take.length}組・${cnt}本・${gb(sizeOf(take))}</b> を片付けます。<span style="color:var(--muted)">どの組も1本は残ります。</span></p>
+    <div class="h3">各フォルダーから片付ける本数</div>
+    <div class="fcount">${per.map(x=>`<div class="fc-r"><span class="pf"><span class="fico" aria-hidden="true"></span><span>${H(x.fo.name)}<small>優先${x.fo.rank}・${x.fo.drive}</small></span></span>
+      <span class="hbar"><i style="width:${x.n/maxN*100}%;background:var(--trash)"></i></span>
+      <span class="num fc-n">${x.n?`${x.n}本・${gb(x.size)}`:"0本"}${x.same?`<small>うち同じフォルダー内の重複 ${x.same}本</small>`:""}</span></div>`).join("")}</div>
+    <div class="hint" style="font-size:12px;color:var(--faint);margin-top:6px">「同じフォルダー内の重複」は、同じフォルダーに同じ動画が複数あるものです。1本は残るので、そのフォルダーから動画がなくなることはありません。</div>
+    ${top?`<div class="note warn">判定の順番で「更新日時」を先にしているため、優先1の「${H(top.fo.name)}」にあるファイルも、ほかのフォルダーのファイルより後回しにされ ${top.cross}本 片付けます。<button class="link" id="edit-rule3">判定の順番を見直す</button></div>`:""}
+    ${man?`<div class="note ok">あなたが選び直した ${man}組 は、その選択のまま承認します。</div>`:""}
+    ${take.length<ready.length?`<div class="note warn">1回に承認できるのは${LIMIT_EXACT}件までのため、残り ${ready.length-take.length}組 は次の回になります。</div>`:""}
+    ${blocked?`<div class="note">接続されていないドライブを含む ${blocked}組 は、接続するまで対象外です。</div>`:""}
+    <div style="margin-top:12px"><button class="link" id="toggle-list">${showList?"▾ 組の一覧を閉じる":`▸ 組の一覧を見る（${take.length}組・確認は任意です）`}</button></div>
+    ${showList?`<div class="agrps" style="margin-top:8px">${take.map(grow).join("")}</div>`:""}
+  </div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>戻って選び直す</button><button class="btn primary" id="approve-ok" ${take.length?"":"disabled"}>承認して整理リストへ</button></div></div></div>`;
+}
+function addModal(){
+  const sel=S.overlay.pick;
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="フォルダーを追加"><div class="m-h"><h2>整理するフォルダーを追加</h2><p>試作では候補から選びます。実際のアプリではWindowsのフォルダー選択画面が開きます。</p></div>
+  <div class="m-b"><div class="pick">${EXTRA_FOLDERS.map(c=>{const has=S.folders.some(f=>f.id===c.id);return `<button data-pick="${c.id}" aria-pressed="${sel===c.id}" ${has?"disabled":""}><span class="fico" aria-hidden="true"></span><span>${H(c.path)}${has?"（追加済み）":""}</span></button>`}).join("")}</div>
+  <div class="note">追加すると自動で解析が始まります。優先順位は一番下（${S.folders.length+1}位）になり、あとで変えられます。元のファイルは変更しません。</div></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>キャンセル</button><button class="btn primary" id="add-ok" ${sel?"":"disabled"}>追加して解析を始める</button></div></div></div>`;
+}
+function removeModal(){
+  const f=S.folders.find(x=>x.id===S.overlay.id);
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="整理対象から外す"><div class="m-h"><h2>「${H(f.name)}」を整理対象から外しますか？</h2><p>${H(f.path)}</p></div>
+  <div class="m-b"><div class="note">フォルダーとその中のファイルは<b>削除されません</b>。このアプリの一覧に表示されなくなるだけです。</div><div class="note">このフォルダーに関係する重複の組は一覧から消えます。整理リストに入っているこのフォルダーのファイルも外れます。フォルダーの情報は、設定の「外したフォルダーの情報」の日数だけ残ります。</div></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>キャンセル</button><button class="btn danger" id="remove-ok">整理対象から外す</button></div></div></div>`;
+}
+function settingsModal(){
+  const o=S.overlay;o.order=o.order||ranked().map(f=>f.id);o.criteria=o.criteria||S.criteria.slice();o.dateDir=o.dateDir||S.dateDir;
+  o.ret=o.ret||{...S.retention};
+  const R=o.ret;
+  const retRow=(k,label,sub)=>{const unl=R[k]==="";return `<span>${label}<small>${sub}</small></span><span class="retc"><select data-retmode="${k}" aria-label="${label}の情報を残す期間"><option value="days" ${unl?"":"selected"}>日数を指定</option><option value="unl" ${unl?"selected":""}>無制限</option></select><span class="unit ${unl?"off":""}"><input type="text" inputmode="numeric" id="ret-${k}" data-ret="${k}" value="${unl?"":H(R[k])}" ${unl?"disabled":""} aria-label="${label}の情報を残す日数"><span>日</span></span></span>`};
+  const critLbl=c=>c==="folder"?"フォルダーの優先順位が高い方":`<select id="date-dir" aria-label="更新日時の向き" style="padding:4px 6px" draggable="false"><option value="old" ${o.dateDir==="old"?"selected":""}>更新日時が古い方</option><option value="new" ${o.dateDir==="new"?"selected":""}>更新日時が新しい方</option></select>`;
+  const rules=`<div class="fld">判定の順番（つかんで並べ替えます。上から順に判定します）
+      <div class="order dnd" data-dnd="criteria">${o.criteria.map((c,i)=>`<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="${i+1}番目の判定"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${"①②"[i]}</b><span></span><span>${critLbl(c)}</span><span></span></div>`).join("")}</div></div>
+    <div class="fld">フォルダーの優先順位（つかんで並べ替えます。上ほど優先して残します）
+      <div class="order dnd" data-dnd="folders">${o.order.map((id,i)=>{const f=S.folders.find(x=>x.id===id);return `<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="${H(f.name)}、優先${i+1}位"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${i+1}</b><span class="fico" aria-hidden="true"></span><span style="min-width:0">${H(f.name)}<small>${H(f.path)}</small></span><span></span></div>`}).join("")}</div></div>`;
+  if(o.scope==="rule")return ruleModal(o,rules);
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="設定"><div class="m-h"><h2>設定</h2></div><div class="m-b form">
+  <fieldset><legend>完全に同じファイルで残す方</legend>
+    ${rules}
+    <span class="hint">キーボードでは、項目を選んで Alt + ↑↓ で動かせます。一覧で残す方を自分で選び直した組は、ルールを変えてもその選択がそのまま残ります。</span>
+  </fieldset>
+  <fieldset><legend>起動時の確認</legend>
+    <label class="switch"><input type="radio" name="autocheck" value="auto" ${S.autoCheck?"checked":""}><span>起動時に自動で確認する（おすすめ）<small>登録したフォルダーで増えた・消えた・変わったファイルを確認し、新しいファイルだけを解析します。</small></span></label>
+    <label class="switch"><input type="radio" name="autocheck" value="manual" ${S.autoCheck?"":"checked"}><span>手動で確認する<small>起動時は確認しません。左の欄の「変更を確認」を押すと、すべてのフォルダーをまとめて確認します。大きなHDDで起動を軽くしたいときに。</small></span></label>
+  </fieldset>
+  <fieldset><legend>片付けの送り先（既定）</legend>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="radio" name="sdest" value="recycle" ${S.dest==="recycle"?"checked":""}>Windowsのごみ箱</label>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="radio" name="sdest" value="move" ${S.dest==="move"?"checked":""}>保管フォルダーへ移動</label>
+    <label for="set-q">保管フォルダー（空欄なら使いません。整理するフォルダーの外に指定します）<input type="text" id="set-q" value="${H(S.quarantine)}" placeholder="例: D:\\重複の保管"></label>
+  </fieldset>
+  <fieldset><legend>情報を残す期間</legend>
+    <span class="hint">見つからなくなったものの情報（解析結果や判断の記録）を、このアプリの中にどれだけ残すかです。元のファイルを削除する設定ではありません。</span>
+    <div class="ret">
+      ${retRow("file","ファイル","移動・削除されて見つからなくなったファイル")}
+      ${retRow("folder","フォルダー","整理対象から外した・見つからなくなったフォルダー")}
+      ${retRow("drive","ドライブ","接続されていないドライブ（外付けHDDなど）")}
+    </div>
+  </fieldset>
+  <fieldset><legend>そのほか</legend>
+    <label style="display:flex;gap:8px;color:var(--text)"><input type="checkbox" id="set-dev">詳しい技術情報を表示する</label>
+    <ul class="devlist"><li>ファイルの識別番号とハッシュ値（完全に同じと判定した根拠）</li><li>よく似ていると判定した数値の根拠（一致した場面の数など）</li><li>解析の処理状態と、失敗したときのエラーの種類</li><li>使っているAIモデルの名前と動作状態</li></ul>
+    <span class="hint">通常の整理には必要ありません。問題を調べるときに使います。</span>
+  </fieldset></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" data-close>キャンセル</button><button class="btn primary" id="set-save">保存</button></div></div></div>`;
+}
+/* Only the keep rule, with how many files each folder would give up under it. */
+function ruleModal(o,rules){
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="残す方のルール"><div class="m-h"><h2>${SAME}残す方のルール</h2><p>完全に同じファイルが複数あるとき、どれを残すかの決め方です。上から順に判定します。</p></div><div class="m-b form">
+    ${rules}
+    <div class="fld">このルールで片付ける本数（承認を待っている組）<div class="preview">${rulePreview(o)}</div></div>
+    <span class="hint">つかんで並べ替えると、本数がその場で変わります。キーボードでは Alt + ↑↓ で動かせます。</span></div>
+  <div class="m-f"><span class="sp"></span><button class="btn" id="rule-cancel">${o.back?"変えずに戻る":"キャンセル"}</button><button class="btn primary" id="rule-save">このルールにする</button></div></div></div>`;
+}
+function rulePreview(o){
+  const rank={};o.order.forEach((id,i)=>rank[id]=i+1);
+  const rk=f=>rank[f.root]||99;
+  const pick=fs=>{let c=fs.slice();for(const k of o.criteria){if(c.length<2)break;if(k==="folder"){const b=Math.min(...c.map(rk));c=c.filter(f=>rk(f)===b)}else{c.sort((a,b)=>o.dateDir==="new"?b.date.localeCompare(a.date):a.date.localeCompare(b.date));c=[c[0]]}}return c[0]};
+  const gs=openOf("exact");
+  if(!gs.length)return '<span style="color:var(--muted);font-size:13px">いま承認を待っている組はありません。次に見つかった組から、このルールを使います。</span>';
+  const now={},nxt={};
+  gs.forEach(g=>{const kx=g.manual?g.keep:pick(g.files).id;g.files.forEach(f=>{if(f.id!==g.keep)now[f.root]=(now[f.root]||0)+1;if(f.id!==kx)nxt[f.root]=(nxt[f.root]||0)+1})});
+  const max=Math.max(1,...Object.values(nxt));
+  return o.order.map(id=>{const f=S.folders.find(x=>x.id===id),n=nxt[id]||0,d=n-(now[id]||0);
+    return `<div class="pv-r"><span class="pf"><span class="fico" aria-hidden="true"></span><span>${H(f.name)}<small>優先${rank[id]}</small></span></span><span class="hbar"><i style="width:${n/max*100}%;background:var(--trash)"></i></span><span class="num" style="text-align:right">${n}本 片付ける${d?`<small style="color:var(--accent-hi)">今のルールより ${d>0?"+":""}${d}本</small>`:'<small style="color:var(--faint)">今のルールと同じ</small>'}</span></div>`}).join("")
+    +'<div style="font-size:12px;color:var(--faint)">どの組も1本は残ります。あなたが選び直した組は、ルールを変えてもそのままです。</div>';
+}
+function runModal(){
+  const o=S.overlay,steps=["内容を確認","チェック","実行"];
+  const destTxt=S.dest==="recycle"?"Windowsのごみ箱へ移動":`保管フォルダー（${S.quarantine}）へ移動`;
+  const head=`<div class="m-h"><h2>整理リストを実行</h2><div class="wsteps">${steps.map((s,i)=>`<span class="${i===o.step?"on":i<o.step?"ok":""}">${i+1}. ${s}</span>`).join("")}</div></div>`;
+  const groups={};S.queue.forEach(q=>{(groups[q.gid]=groups[q.gid]||{type:q.type,keep:q.keep,items:[]}).items.push(q)});
+  const G=Object.entries(groups);
+  if(o.step<2){
+    const body=G.map(([gid,x])=>`<div class="wgroup"><div class="wgroup-h">${MARK(x.type)}<span>${TYPE(x.type)}</span><span class="sp"></span>${x.type==="exact"?(byId(gid).manual?'<span class="pill manual">手動で選択・承認済み</span>':'<span class="pill keep">ルールで承認済み</span>'):""}</div>
+      ${x.keep?`<div class="wrow"><span></span><span class="pill keep role">残す</span>${row(x.keep)}</div>`:""}
+      ${x.items.map(q=>`<div class="wrow">${o.step===1&&q.type!=="exact"?`<input type="checkbox" data-chk="${q.file.id}" ${o.checked[q.file.id]?"checked":""} aria-label="${H(q.file.name)}を片付けることを確認">`:"<span></span>"}<span class="pill trash role">片付ける</span>${row(q.file)}</div>`).join("")}</div>`).join("");
+    const need=S.queue.filter(q=>q.type!=="exact"),done=need.filter(q=>o.checked[q.file.id]).length;
+    const intro=o.step===0?`<div class="note">実行前の確認です。まだファイルは変更されていません。送り先: <b>${H(destTxt)}</b></div><div class="note warn">このアプリには「元に戻す」機能はありません。${S.dest==="recycle"?"Windowsのごみ箱から戻せます。":"保管フォルダーから戻せます。"}</div>`:`<div class="note">よく似ている動画・念のため確認の動画・個別に選んだファイルは、1件ずつチェックしてください（<span class="num">${done}/${need.length}</span>）。完全に同じファイルは承認済みです。</div>`;
+    const ok=o.step===0||done===need.length;
+    return `<div class="scrim"><div class="modal" role="dialog" aria-label="整理リストを実行">${head}<div class="m-b">${intro}${body}</div><div class="m-f"><span class="num">${S.queue.length}件・${gb(qSize())}</span><span class="sp"></span><button class="btn" data-back>${o.step===0?"やめる":"戻る"}</button><button class="btn primary" id="w-next" ${ok?"":"disabled"}>${o.step===0?"内容を確認しました":"チェックを終えました"}</button></div></div></div>`;
+  }
+  if(!o.running)return `<div class="scrim"><div class="modal" role="dialog" aria-label="最終確認">${head}<div class="m-b"><p style="font-size:18px;margin:0 0 8px"><b class="num">${S.queue.length}件（${gb(qSize())}）</b>を${H(destTxt)}します。</p><div class="note">1件ずつ順番に処理します。完全に同じファイルは、処理の直前に中身が同じかをもう一度確かめます。途中でやめても、処理済みのファイルは自動では戻りません。</div>${S.dest==="recycle"?'<div class="note">ドライブの容量は、ごみ箱を空にしたときに空きます。</div>':""}</div><div class="m-f"><span class="sp"></span><button class="btn" data-back>戻る</button><button class="btn primary" id="w-exec">${S.dest==="recycle"?"ごみ箱へ移動する":"保管フォルダーへ移動する"}</button></div></div></div>`;
+  const n=o.progress||0;
+  const mark=q=>o.fails[q.file.id]?' <span class="pill r-tag" style="color:var(--danger);border-color:rgba(228,98,91,.5)">できませんでした</span>':' <span class="pill keep r-tag">完了</span>';
+  if(!o.finished)return `<div class="scrim"><div class="modal" role="dialog" aria-label="実行中">${head}<div class="m-b"><p class="num">処理しています… ${n}/${S.queue.length}件</p><div class="bar"><i style="width:${n/S.queue.length*100}%"></i></div><div class="progress-list" style="margin-top:10px">${S.queue.slice(0,n).slice(-6).map(q=>row(q.file,mark(q))).join("")}</div></div><div class="m-f"><span class="sp"></span><button class="btn" id="w-stop">残りをやめる</button></div></div></div>`;
+  const rec=o.dest==="recycle",F=o.failed||[];
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="完了">${head}<div class="m-b"><div style="text-align:center;padding:16px 10px"><div class="bigstat num">${gb(o.freedNow)}</div><p style="font-size:16px;margin:6px 0">${rec?"をごみ箱へ移動しました":"を保管フォルダーへ移動しました"}（<span class="num">${o.movedNow}件</span>）</p>
+    <p style="color:var(--muted);margin:0 0 12px">${rec?"ごみ箱を空にすると、この分のドライブ容量が空きます。":"保管フォルダーの中身を確認してから、不要なら削除してください。"}残り <span class="num">${visible().filter(g=>g.status==="open").length}組</span>。</p>
+    <button class="btn" data-open="${rec?"bin":"vault"}">${rec?"ごみ箱を開く":"保管フォルダーを開く"}</button></div>
+    ${F.length?`<div class="note warn"><b class="num">${F.length}件</b>は移動できませんでした。整理リストに戻したので、原因を直してからもう一度実行できます。</div>${F.map(q=>`<div class="qrow">${row(q.file)}<span style="font-size:12px;color:#E9C58C;padding-left:8px;max-width:220px">${H(q.reason)}</span></div>`).join("")}`:""}
+  </div><div class="m-f"><span class="sp"></span><button class="btn primary" id="w-done">続けて片付ける</button></div></div></div>`;
+}
+function failedDrawer(){
+  return `<div class="scrim" data-close><aside class="drawer" role="dialog" aria-label="解析できなかったファイル"><div class="drawer-h"><b>解析できなかったファイル</b><span class="pill num">${S.failed.length}本</span><span class="sp"></span><button class="btn" data-close>閉じる</button></div><div class="drawer-b"><div class="dsec">
+    <div class="note warn">これらのファイルは、重複かどうか調べられていません。原因を直してから「もう一度解析」を押してください。</div>
+    ${S.failed.length?S.failed.map((x,i)=>`<div class="qrow"><div class="row">${thumb(0,x.name)}<div class="r-main"><div class="r-name">${H(x.name)}</div><div class="r-path">${H(x.dir)}</div><div style="font-size:12px;color:#E9C58C">${H(x.reason)}</div></div><div></div></div><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn small ghost" data-reveal="${i}">エクスプローラーで表示</button><button class="btn small" data-retry="${i}">もう一度解析</button></span></div>`).join(""):'<p style="color:var(--muted)">解析できなかったファイルはありません。</p>'}
+  </div></div></aside></div>`;
+}
+function findFile(id){for(const g of S.groups)for(const f of g.files)if(f.id===id)return {f,g};return null}
+function playerModal(){
+  const {f}=findFile(S.overlay.fid),bad=f.name.toLowerCase().endsWith(".mkv");
+  return `<div class="scrim" data-close><div class="modal" role="dialog" aria-label="再生"><div class="m-h"><h2>${H(f.name)}</h2><p>${H(f.dir)}・${facts(f)}</p></div><div class="m-b">
+    ${bad?`<div class="vbox"><div><b>このアプリでは再生できない形式です</b><p>この動画（HEVC / H.265）を再生するには、Windowsに「HEVC ビデオ拡張機能」（Microsoft Store）を入れる必要があります。</p><div class="actions" style="justify-content:center"><button class="btn primary" data-fm2="ext">既定のプレーヤーで開く</button><button class="btn" data-fm2="store">拡張機能について</button></div></div></div>`
+    :`<div class="thumb" style="width:100%;height:auto;aspect-ratio:16/9;background:linear-gradient(135deg,hsl(${f.hue} 45% 42%),hsl(${(f.hue+40)%360} 40% 22%))" role="img" aria-label="${H(f.name)}の再生画面"></div><div class="scrub"><button class="btn small" id="pplay">▶ 再生</button><div class="track" aria-hidden="true"><i id="pscrub" style="width:12%"></i></div><span class="num" style="font-size:12px;color:var(--muted)">${dur(f.dur*.12)} / ${dur(f.dur)}</span></div>`}
+  </div><div class="m-f"><button class="btn ghost" data-fm2="ext">既定のプレーヤーで開く</button><button class="btn ghost" data-fm2="reveal" data-fid="${f.id}">エクスプローラーで表示</button><span class="sp"></span><button class="btn" id="player-close">閉じる</button></div></div></div>`;
+}
+function prioModal(){
+  const o=S.overlay;
+  return `<div class="scrim"><div class="modal" role="dialog" aria-label="優先するフォルダー"><div class="m-h"><h2>${SAME}完全に同じ動画が見つかりました</h2><p>同じ動画が複数のフォルダーにあるとき、どのフォルダーにある方を残しますか？ 上ほど優先して残します。つかんで並べ替えてください。</p></div>
+  <div class="m-b form"><div class="order dnd" data-dnd="folders">${o.order.map((id,i)=>{const f=S.folders.find(x=>x.id===id);return `<div class="it" draggable="true" data-i="${i}" tabindex="0" aria-label="${H(f.name)}、優先${i+1}位"><span class="grip" aria-hidden="true">⠿</span><b class="num" style="text-align:center">${i+1}</b><span class="fico" aria-hidden="true"></span><span style="min-width:0">${H(f.name)}<small>${H(f.path)}</small></span><span></span></div>`}).join("")}</div>
+  <span class="hint">同じ順位のときは、更新日時が古い方を残します。あとから設定や左の欄でいつでも変えられます。</span></div>
+  <div class="m-f"><span class="sp"></span><button class="btn primary" id="prio-ok">この順番で決める</button></div></div></div>`;
+}
+function closeFileMenu(){const m=$("#filemenu");if(m)m.remove()}
+function openFileMenu(b){
+  closeFileMenu();
+  const hit=findFile(b.dataset.filemenu);if(!hit)return;const f=hit.f,ctx=b.dataset.ctx;
+  const inQ=S.queue.some(q=>q.file.id===f.id),inPair=S.queue.some(q=>q.keep&&q.keep.id===f.id);
+  const m=document.createElement("div");m.className="menu";m.id="filemenu";m.style.position="fixed";m.style.zIndex="70";
+  m.innerHTML=`<button data-fm="play">再生<small>このアプリの中で再生します</small></button><button data-fm="reveal">エクスプローラーで表示<small>このファイルを選んだ状態でフォルダーを開きます</small></button>${ctx==="files"?`<hr><button data-fm="queue" ${inQ||inPair||!fileReady(f)?"disabled":""}>整理リストに入れる<small>${inQ?"すでに入っています":inPair?"重複の組で「残す」にしているファイルです":!fileReady(f)?"ドライブが接続されていません":"不要なファイルとして片付けの対象にします"}</small></button>`:""}`;
+  document.body.appendChild(m);
+  const r=b.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
+  m.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+"px";
+  m.style.top=(r.bottom+4+h>window.innerHeight-8?Math.max(8,r.top-h-4):r.bottom+4)+"px";
+  m.querySelector('[data-fm="play"]').onclick=()=>{closeFileMenu();S.overlay={kind:"player",fid:f.id,prev:S.overlay};renderOverlay()};
+  m.querySelector('[data-fm="reveal"]').onclick=()=>{closeFileMenu();toast(`エクスプローラーで ${f.dir} を開き、「${f.name}」を選んだ状態にします（試作では省略）`)};
+  const qb=m.querySelector('[data-fm="queue"]');if(qb)qb.onclick=()=>{closeFileMenu();enqueueSingle(f);renderOverlay()};
+}
+function toggleOffline(){
+  if(!S.folders.length){toast("先にフォルダーを追加してください");return}
+  const f=S.folders.find(x=>x.id==="C");if(!f)return;
+  f.offline=!f.offline;
+  if(f.offline){[...new Set(S.queue.filter(q=>q.file.root==="C").map(q=>q.gid))].forEach(gid=>{S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open"});toast(`「${f.name}」（${f.drive}）が外れました。このドライブを含む組は、接続すると片付けられます`)}
+  else toast(`「${f.name}」（${f.drive}）がつながりました`);
+  $("#proto-offline").setAttribute("aria-pressed",f.offline);render();
+}
+let pT=null;
+function playModal(){const b=$("#pplay");if(pT){clearInterval(pT);pT=null;b.textContent="▶ 再生";return}b.textContent="❚❚ 一時停止";let w=12;pT=setInterval(()=>{w=w>=100?0:w+1;const x=$("#pscrub");if(!x){clearInterval(pT);pT=null;return}x.style.width=w+"%"},150)}
+function listOrder(){return listedGroups()}
+document.addEventListener("keydown",e=>{
+  if(!S||S.overlay||S.state==="first"||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.closest&&e.target.closest("input,select,textarea"))return;
+  if(e.key==="Enter"&&e.target.closest&&e.target.closest("button,[role=button],.fold"))return;
+  const list=listOrder(),i=list.findIndex(g=>g.id===S.sel),k=e.key.toLowerCase();
+  if(k==="j"||k==="k"){e.preventDefault();const n=list[k==="j"?Math.min(list.length-1,i+1):Math.max(0,i-1)];if(n){S.sel=n.id;render();const el=$(`.group[data-g="${n.id}"]`);if(el)el.scrollIntoView({block:"nearest"})}return}
+  const g=byId(S.sel);if(!g||g.status!=="open")return;
+  if(/^[1-9]$/.test(e.key)){const f=g.files[+e.key-1];if(f){g.keep=f.id;g.manual=g.type==="exact"?f.id!==autoKeep(g):true;render()}}
+  else if(e.key==="Enter"&&g.type!=="exact"){e.preventDefault();const btn=$(`[data-enq="${g.id}"]`);if(btn&&!btn.disabled)btn.click()}
+  else if(k==="n"&&g.type!=="exact"){const btn=$(`[data-skip="${g.id}"]`);if(btn)btn.click()}
+});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-filemenu]");if(b){e.preventDefault();e.stopPropagation();openFileMenu(b);return}if(!(e.target.closest&&e.target.closest("#filemenu")))closeFileMenu()},true);
+/* ---------- events ---------- */
+const on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+function openKind(kind,extra){S.overlay={kind,...(extra||{})};renderOverlay()}
+function bindOpeners(root){
+  root.querySelectorAll("[data-open]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();toast(b.dataset.open==="bin"?"Windowsのごみ箱を開きます（試作では省略）":S.quarantine?`エクスプローラーで ${S.quarantine} を開きます（試作では省略）`:"保管フォルダーはまだ指定されていません。片付けパネルで場所を指定してください")});
+}
+function bindScreen(){
+  on("#first-add",()=>openKind("add",{first:true}));
+  on("#add-folder",()=>openKind("add"));on("#add-folder2",()=>openKind("add"));
+  on("#approve",()=>openKind("approve"));on("#go-run",openRun);on("#run",openRun);
+  on("#go-sim",()=>{const g=openOf("similar")[0]||openOf("check")[0];S.sel=g.id;S.open[g.type]=true;render()});
+  on("#go-first",()=>{S.sel=visible().find(g=>g.status==="open").id;render()});
+  on("#edit-rule4",()=>openKind("settings",{scope:"rule"}));
+  on("#peek",()=>{S.peek=!S.peek;render()});
+  on("#hint-close",()=>{S0.hint=false;render()});on("#hint-open",()=>{S0.hint=true;render()});
+  on("#show-analysis",()=>{S.detail="scan";render()});on("#show-check",()=>{S.detail="check";render()});on("#back-list",()=>{S.detail=null;render()});
+  on("#open-failed",()=>openKind("failed"));on("#open-failed2",()=>openKind("failed"));
+  on("#check-now",()=>startCheck(false));on("#check-now2",()=>startCheck(false));
+  on("#notify",()=>toast("解析が終わったらWindowsの通知でお知らせします"));
+  ["#open-cleanup","#open-cleanup2","#open-cleanup3"].forEach(id=>on(id,()=>openKind("cleanup")));
+  on("#open-files2",()=>openKind("files"));
+  on("#play",playSync);
+  bindOpeners($("#screen"));
+  $$("[data-toggle]").forEach(b=>b.onclick=()=>{S.open[b.dataset.toggle]=!S.open[b.dataset.toggle];render()});
+  $$(".group[data-g]").forEach(el=>{el.onclick=()=>{S.sel=el.dataset.g;render()};el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();el.click()}}});
+  $$('.detail input[type=radio]').forEach(r=>r.onchange=()=>{const g=byId(S.sel);g.keep=r.value;g.manual=g.type==="exact"?r.value!==autoKeep(g):true;render()});
+  $$("[data-reset]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.reset);g.manual=false;g.keep=autoKeep(g);render()});
+  $$("[data-enq]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.enq);if(!enqueue(g)){toast(`整理リストは1回${LIMIT}件までです。先に実行してください`);return}const nx=visible().find(x=>x.status==="open"&&x.type!=="exact");S.sel=nx?nx.id:null;toast("整理リストに入れました。次の組を表示します");render()});
+  $$("#screen [data-unq]").forEach(b=>b.onclick=()=>dequeue(b.dataset.unq));
+  $$("[data-skip]").forEach(b=>b.onclick=()=>{byId(b.dataset.skip).status="done";S.judgments.unshift({gid:b.dataset.skip,what:"重複ではない"});const nx=visible().find(x=>x.status==="open"&&x.type!=="exact");S.sel=nx?nx.id:null;toast("「重複ではない」と記録しました。ファイルは変更しません");render()});
+  $$("[data-fmenu]").forEach(b=>b.onclick=e=>{e.stopPropagation();S.fmenu=S.fmenu===b.dataset.fmenu?null:b.dataset.fmenu;render()});
+  $$("[data-fact]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.id,f=S.folders.find(x=>x.id===id),act=b.dataset.fact;S.fmenu=null;
+    if(act==="up"||act==="down"){const r=ranked(),i=r.findIndex(x=>x.id===id),j=act==="up"?i-1:i+1;[r[i],r[j]]=[r[j],r[i]];r.forEach((x,k)=>x.rank=k+1);reapplyRule();toast(`「${f.name}」の優先順位を ${f.rank}位 にしました。手動で選んだ組以外は、残す方を選び直しました`);render();return}
+    if(act==="rescan"){f.scan=3;S.scanTicks=0;render();tickScan();return}
+    if(act==="files"){openKind("files",{folder:id});render();return}
+    if(act==="explorer"){toast(`エクスプローラーで ${f.path} を開きます（試作では省略）`);render();return}
+    if(act==="remove"){S.overlay={kind:"remove",id};render()}});
+  initSplitter();
+  const folds=$$(".side .fold");
+  if(folds.length)bindDnd(folds,(i,j)=>{const r=ranked();const [x]=r.splice(i,1);r.splice(j,0,x);r.forEach((f,k)=>f.rank=k+1);reapplyRule();toast(`「${x.name}」を優先${j+1}位にしました。手動で選んだ組以外は、残す方を選び直しました`);render()});
+}
+function initSplitter(){
+  const sp=$("#splitter"),body=$(".body");if(!sp)return;
+  const set=w=>{w=Math.max(200,Math.min(480,w));document.documentElement.style.setProperty("--sidew",w+"px");try{localStorage.setItem("lmai-sidew",w)}catch(e){}};
+  sp.onpointerdown=e=>{sp.setPointerCapture(e.pointerId);sp.classList.add("drag");const left=body.getBoundingClientRect().left;
+    sp.onpointermove=m=>set(m.clientX-left);sp.onpointerup=()=>{sp.classList.remove("drag");sp.onpointermove=null}};
+  sp.onkeydown=e=>{const cur=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sidew"))||250;if(e.key==="ArrowLeft"){set(cur-20);e.preventDefault()}if(e.key==="ArrowRight"){set(cur+20);e.preventDefault()}};
+  sp.ondblclick=()=>set(250);
+}
+function bindDnd(items,move){
+  let from=null;
+  items.forEach(it=>{
+    const i=+it.dataset.i;
+    it.addEventListener("dragstart",e=>{from=i;it.classList.add("dragging");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",String(i))}catch(_){}});
+    it.addEventListener("dragend",()=>{it.classList.remove("dragging");items.forEach(x=>x.classList.remove("over-top","over-bottom"))});
+    it.addEventListener("dragover",e=>{if(from===null)return;e.preventDefault();const r=it.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;items.forEach(x=>x.classList.remove("over-top","over-bottom"));it.classList.add(top?"over-top":"over-bottom")});
+    it.addEventListener("drop",e=>{e.preventDefault();if(from===null)return;const r=it.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;let to=top?i:i+1;if(from<to)to--;const f=from;from=null;if(to!==f)move(f,to)});
+    it.addEventListener("keydown",e=>{if(e.altKey&&(e.key==="ArrowUp"||e.key==="ArrowDown")){e.preventDefault();const to=i+(e.key==="ArrowUp"?-1:1);if(to>=0&&to<items.length)move(i,to)}});
+  });
+}
+function openRun(){S.overlay={kind:"run",step:0,checked:{},dest:S.dest};renderOverlay()}
+function bindOverlay(){
+  const ov=$("#overlay");
+  ov.querySelectorAll("[data-close]").forEach(el=>el.addEventListener("click",e=>{if(e.target===el){S.overlay=S.overlay&&S.overlay.kind==="player"?(S.overlay.prev||null):null;render()}}));
+  ov.querySelectorAll("[data-back]").forEach(el=>el.onclick=()=>{if(S.overlay.step===0){S.overlay=null;render();return}S.overlay.step=S.overlay.step===2&&!S.queue.some(q=>q.type!=="exact")?0:S.overlay.step-1;renderOverlay()});
+  bindOpeners(ov);
+  ov.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{S.overlay.folder=b.dataset.ff||null;renderOverlay()});
+  ov.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>{const g=byId(b.dataset.jump);S.sel=g.id;S.open[g.type]=true;S.overlay=null;render()});
+  ov.querySelectorAll("[data-unq]").forEach(b=>b.onclick=()=>dequeue(b.dataset.unq));
+  ov.querySelectorAll("[data-chk]").forEach(c=>c.onchange=()=>{S.overlay.checked[c.dataset.chk]=c.checked;renderOverlay()});
+  ov.querySelectorAll("input[name=dest]").forEach(r=>r.onchange=()=>{S.dest=r.value;render()});
+  ov.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{S.overlay.pick=b.dataset.pick;renderOverlay()});
+  ov.querySelectorAll("[data-hist]").forEach(b=>b.onclick=()=>toast("このときに移動したファイルの一覧を表示します（試作では省略）"));
+  ov.querySelectorAll(".dnd").forEach(list=>bindDnd(list.querySelectorAll(".it"),(i,j)=>{const arr=list.dataset.dnd==="folders"?S.overlay.order:S.overlay.criteria;const [x]=arr.splice(i,1);arr.splice(j,0,x);renderOverlay();const t=$(`#overlay [data-dnd="${list.dataset.dnd}"] .it[data-i="${j}"]`);if(t)t.focus()}));
+  const dd=$("#date-dir");if(dd)dd.onchange=()=>{S.overlay.dateDir=dd.value;if(S.overlay.scope==="rule")renderOverlay()};
+  ov.querySelectorAll("[data-retmode]").forEach(sel=>sel.onchange=()=>{const k=sel.dataset.retmode;S.overlay.ret[k]=sel.value==="unl"?"":(S.overlay.lastRet&&S.overlay.lastRet[k]||"30");renderOverlay()});
+  ov.querySelectorAll("[data-ret]").forEach(inp=>inp.oninput=()=>{inp.value=inp.value.replace(/[^0-9]/g,"");S.overlay.ret[inp.dataset.ret]=inp.value;(S.overlay.lastRet=S.overlay.lastRet||{})[inp.dataset.ret]=inp.value});
+  ov.querySelectorAll("[data-flt]").forEach(b=>b.onclick=()=>{const v=b.dataset.flt||null;S.overlay.flt=S.overlay.flt===v?null:v;renderOverlay()});
+  ov.querySelectorAll("[data-exp]").forEach(r=>{r.onclick=()=>{const x=S.overlay.exp=S.overlay.exp||{};x[r.dataset.exp]=!x[r.dataset.exp];renderOverlay()};r.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();r.click()}}});
+  ov.querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{const j=S.judgments.splice(+b.dataset.undo,1)[0];const g=byId(j.gid);if(g)g.status="open";toast("判断を取り消しました。組は重複の一覧に戻りました");render()});
+  ov.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=>{const x=S.failed.splice(+b.dataset.retry,1)[0];toast(`「${x.name}」をもう一度解析します`);render()});
+  ov.querySelectorAll("[data-reveal]").forEach(b=>b.onclick=()=>{const x=S.failed[+b.dataset.reveal];toast(`エクスプローラーで ${x.dir} を開き、「${x.name}」を選んだ状態にします（試作では省略）`)});
+  ov.querySelectorAll("[data-fm2]").forEach(b=>b.onclick=()=>{const k=b.dataset.fm2;if(k==="ext")toast("Windowsの既定のプレーヤーで開きます（試作では省略）");else if(k==="store")toast("Microsoft Store の拡張機能のページを開きます（試作では省略）");else{const {f}=findFile(b.dataset.fid);toast(`エクスプローラーで ${f.dir} を開き、「${f.name}」を選んだ状態にします（試作では省略）`)}});
+  on("#player-close",()=>{S.overlay=S.overlay.prev||null;render()});
+  on("#pplay",playModal);
+  on("#prio-ok",()=>{S.overlay.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});reapplyRule();S.overlay=null;toast("優先順位を決めました。この順番で残す方を選んであります");render()});
+  on("#vault-edit",()=>{S.overlay.vaultEdit=true;S.overlay.vaultErr="";S.overlay.vaultDraft=S.quarantine;renderOverlay();const i=$("#vault-path");if(i)i.focus()});
+  on("#vault-cancel",()=>{S.overlay.vaultEdit=false;renderOverlay()});
+  on("#vault-browse",()=>{S.overlay.vaultDraft="D:\\重複の保管";S.overlay.vaultErr="";renderOverlay();toast("フォルダーの選択画面が開きます（試作では例の場所を入れました）")});
+  const vp=$("#vault-path");if(vp)vp.oninput=()=>{S.overlay.vaultDraft=vp.value};
+  on("#vault-ok",()=>{const p=(S.overlay.vaultDraft||"").trim();const err=!p?"場所を入力してください":vaultError(p);if(err){S.overlay.vaultErr=err;renderOverlay();return}S.quarantine=p.replace(/\\+$/,"");S.overlay.vaultEdit=false;toast(`保管フォルダー「${S.quarantine}」を作りました`);render()});
+  on("#edit-rule2",()=>openKind("settings",{scope:"rule",back:"approve"}));on("#edit-rule3",()=>openKind("settings",{scope:"rule",back:"approve"}));
+  on("#rule-cancel",()=>{S.overlay=S.overlay.back?{kind:S.overlay.back}:null;render()});
+  on("#rule-save",()=>{const o=S.overlay;o.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});S.criteria=o.criteria.slice();S.dateDir=o.dateDir;reapplyRule();S.overlay=o.back?{kind:o.back}:null;toast("ルールを変えました。手動で選んだ組以外は、残す方を選び直しました");render()});
+  on("#toggle-list",()=>{S.overlay.showList=!S.overlay.showList;renderOverlay()});
+  on("#approve-ok",approveExact);
+  on("#clear-q",()=>{S.queue.forEach(q=>{const g=byId(q.gid);if(g)g.status="open"});S.queue=[];render()});
+  on("#add-ok",()=>{
+    if(S.overlay.first){S.firstRun=true;S.state="scan";S.scanTicks=0;S.folders=BASE_FOLDERS.map((f,i)=>newFolder(f,i+1,i===0?4:1));S.overlay=null;toast("3つのフォルダーを追加しました（試作の例）。解析を始めます");render();tickScan();return}
+    const c=EXTRA_FOLDERS.find(x=>x.id===S.overlay.pick);S.folders.push(newFolder(c,S.folders.length+1,2));S.scanTicks=0;S.overlay=null;toast(`「${c.name}」を追加しました。解析を始めます`);render();tickScan()});
+  on("#remove-ok",()=>{const id=S.overlay.id,f=S.folders.find(x=>x.id===id);S.folders=S.folders.filter(x=>x.id!==id);ranked().forEach((x,k)=>x.rank=k+1);
+    S.queue.filter(q=>q.file.root===id).map(q=>q.gid).forEach(gid=>{S.queue=S.queue.filter(q=>q.gid!==gid);const g=byId(gid);if(g)g.status="open"});
+    reapplyRule();S.overlay=null;toast(`「${f.name}」を整理対象から外しました。ファイルは削除していません`);render()});
+  on("#set-save",()=>{const vq0=$("#set-q").value.trim(),bad0=vq0&&vaultError(vq0);if(bad0){toast(bad0);return}S.overlay.order.forEach((id,i)=>{S.folders.find(f=>f.id===id).rank=i+1});S.quarantine=vq0.replace(/\\+$/,"");S.dest=document.querySelector("input[name=sdest]:checked").value;if(S.dest==="move"&&!S.quarantine){S.dest="recycle";setTimeout(()=>toast("保管フォルダーが空欄なので、送り先はごみ箱にしました"),50)}
+    S.criteria=S.overlay.criteria.slice();S.dateDir=S.overlay.dateDir;
+    S.autoCheck=S0.autoCheck=document.querySelector("input[name=autocheck]:checked").value==="auto";
+    const R=S.overlay.ret;["file","folder","drive"].forEach(k=>{S.retention[k]=R[k]===""?"":(String(R[k]).replace(/[^0-9]/g,"")||"30")});
+    reapplyRule();S.overlay=null;toast("設定を保存しました。手動で選んだ組以外は、残す方を選び直しました");render()});
+  on("#w-next",()=>{const need=S.queue.some(q=>q.type!=="exact");S.overlay.step=S.overlay.step===0&&!need?2:S.overlay.step+1;renderOverlay()});
+  on("#w-exec",()=>{const q=S.queue;S.overlay.fails={};if(q.length>=5){S.overlay.fails[q[1].file.id]="ほかのアプリで開かれていたため、移動できませんでした";S.overlay.fails[q[3].file.id]="確認のあとでファイルが変更されていたため、止めました"}S.overlay.running=true;S.overlay.progress=0;renderOverlay();stepExec()});
+  on("#w-stop",()=>{S.overlay.stop=true});
+  on("#w-done",()=>{S.overlay=null;const nx=visible().find(g=>g.status==="open");S.sel=nx?nx.id:null;render()});
+}
+function stepExec(){const o=S.overlay;if(!o||o.kind!=="run")return;if(o.stop||o.progress>=S.queue.length){finishRun();return}o.progress++;renderOverlay();setTimeout(stepExec,120)}
+function finishRun(){
+  const o=S.overlay,done=S.queue.slice(0,o.progress),rest=S.queue.slice(o.progress);
+  const failed=done.filter(q=>o.fails[q.file.id]).map(q=>({...q,reason:o.fails[q.file.id]}));
+  const moved=done.filter(q=>!o.fails[q.file.id]);
+  const freedNow=moved.reduce((a,q)=>a+q.file.size,0);
+  const backG=new Set(failed.map(q=>q.gid));
+  new Set(moved.map(q=>q.gid)).forEach(gid=>{if(!backG.has(gid)){const g=byId(gid);if(g)g.status="done"}});
+  rest.forEach(q=>{const g=byId(q.gid);if(g&&!backG.has(q.gid))g.status="open"});
+  if(o.dest==="recycle")moved.forEach(q=>{S.bin[q.file.drive]=(S.bin[q.file.drive]||0)+q.file.size});
+  if(moved.length){const d=new Date(),p=n=>String(n).padStart(2,"0");S.history.unshift({date:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,count:moved.length,size:freedNow,dest:o.dest})}
+  S.queue=failed.map(({reason,...q})=>q);S.prevNew=0;S.peek=false;if(S.state==="return")S.state="found";
+  o.finished=true;o.freedNow=freedNow;o.movedNow=moved.length;o.failed=failed;render();
+}
+let playT=null;
+function playSync(){const b=$("#play");if(playT){clearInterval(playT);playT=null;b.textContent="▶ 同時に再生";return}b.textContent="❚❚ 一時停止";let w=12;playT=setInterval(()=>{w=w>=100?12:w+1;const x=$("#scrub");if(!x){clearInterval(playT);playT=null;return}x.style.width=w+"%"},120)}
+let checkT=null;
+const NEWNAMES=["運動会2023 (2).mp4","京都_紅葉_スマホ.mp4","花火大会_コピー.mp4","子ども誕生日_編集.mp4","IMG_4821.MOV","IMG_4822.MOV","VID_20260920.mp4","ライブ映像_01_短縮.mp4","旅行_まとめ_v2.mp4","画面録画_0921.mp4","七五三_フル.mp4","卒業式_予備.mp4"];
+function startCheck(auto){
+  clearTimeout(checkT);
+  const hasNew=S.groups.some(g=>g.pendingNew);
+  const plan={A:{added:0,changed:0,removed:0},B:{added:hasNew?9:0,changed:hasNew?2:0,removed:0},C:{added:hasNew?3:0,changed:0,removed:hasNew?1:0}};
+  const folders=ranked().filter(f=>!f.offline).map(f=>({id:f.id,name:f.name,path:f.path,drive:f.drive,subs:f.subs,total:f.files,seen:0,state:"wait",plan:plan[f.id]||{added:0,changed:0,removed:0},found:{added:0,changed:0,removed:0},speed:f.drive==="F:"?0.09:0.22}));
+  const files=[];
+  folders.forEach(f=>{for(let i=0;i<f.plan.added+f.plan.changed;i++)files.push({name:NEWNAMES[files.length%NEWNAMES.length],dir:f.path+"\\"+f.subs[i%f.subs.length],size:0.3+((files.length*7)%19)/4,kind:i<f.plan.added?"新しい":"変わった",stage:0,pct:0})});
+  S.check={phase:"diff",auto,folders,files,log:[],found:[],cur:"",t0:Date.now(),fi:0,totalPend:S.groups.filter(g=>g.pendingNew).length};
+  if(!auto)render();
+  checkT=setTimeout(tickCheck,450);
+}
+function tickCheck(){
+  const c=S.check;if(!c)return;
+  if(c.phase==="diff"){
+    const f=c.folders.find(x=>x.state==="run")||c.folders.find(x=>x.state==="wait");
+    if(!f){c.phase=c.files.length?"analyze":"done"}
+    else{
+      f.state="run";
+      const step=Math.max(1,Math.round(f.total*f.speed*(0.6+Math.random()*0.8)));
+      f.seen=Math.min(f.total,f.seen+step);
+      const sub=f.subs[Math.floor(Math.random()*f.subs.length)];
+      c.cur=`${f.path}\\${sub}\\${["IMG_","VID_","clip_","DSC_"][f.seen%4]}${1000+f.seen}.mp4`;
+      ["added","changed","removed"].forEach(k=>{const want=Math.round(f.plan[k]*f.seen/f.total);while(f.found[k]<want){f.found[k]++;const nm=k==="removed"?"古い録画_0412.mp4":NEWNAMES[(c.log.length*5)%NEWNAMES.length];c.log.unshift({k,text:`${f.path}\\${sub}\\${nm}`})}});
+      if(f.seen>=f.total)f.state="done";
+    }
+  }
+  if(c.phase==="analyze"){
+    const x=c.files[c.fi];
+    if(!x){c.phase="done"}
+    else{
+      x.pct=Math.min(100,x.pct+(x.size>3?9:22)+Math.random()*8);x.stage=x.pct<35?0:x.pct<70?1:2;
+      if(x.pct>=100){
+        const pend=S.groups.filter(g=>g.pendingNew&&!c.found.includes(g));
+        const want=Math.round(c.totalPend*(c.fi+1)/c.files.length);pend.slice(0,Math.max(0,want-c.found.length)).forEach(g=>c.found.push(g));
+        c.fi++;
+      }
+    }
+  }
+  if(c.phase==="done"){finishCheck();return}
+  if(!S.overlay)render();
+  checkT=setTimeout(tickCheck,550);
+}
+function finishCheck(){
+  const c=S.check,added=c.folders.reduce((a,f)=>a+f.found.added+f.found.changed,0);S.newFiles=added;
+  const fresh=S.groups.filter(g=>g.pendingNew);fresh.forEach(g=>g.pendingNew=false);
+  S.prevNew=fresh.length;S.check=null;S.detail=null;S.lastCheck="たった今";
+  if(S.state==="clean"&&fresh.length)S.state="found";
+  toast(added?`新しい・変わったファイル ${added}本を解析し、新しい重複を ${fresh.length}組 見つけました`:"変更はありませんでした");
+  render();
+}
+function checkProgress(){
+  const c=S.check,tot=c.folders.reduce((a,f)=>a+f.total,0),seen=c.folders.reduce((a,f)=>a+f.seen,0);
+  const dp=tot?seen/tot:1,ap=c.files.length?c.files.reduce((a,x)=>a+x.pct,0)/c.files.length/100:1;
+  return Math.round((c.files.length?dp*0.4+ap*0.6:dp)*100);
+}
+function checkStrip(){
+  const c=S.check;if(!c)return "";
+  const f=c.folders.find(x=>x.state==="run"),x=c.files[c.fi];
+  const txt=c.phase==="diff"?(f?`変更を確認中：<b>${H(f.name)}</b>（${f.seen.toLocaleString()} / ${f.total.toLocaleString()}本）`:"変更を確認中"):x?`新しいファイルを解析中：<b>${H(x.name)}</b>（${c.fi+1} / ${c.files.length}本）`:"";
+  const p=checkProgress();
+  return `<div class="scanstrip" role="status"><span class="pulse" aria-hidden="true"></span><span>${c.auto?"起動時の確認・":""}${txt}</span><div class="bar"><i style="width:${p}%"></i></div><span class="num">${p}%</span><span style="flex:1"></span><button class="link" id="show-check">詳しく見る</button></div>`;
+}
+const KINDS={added:["＋","新しい","var(--keep)"],changed:["～","変わった","var(--sig-yellow)"],removed:["－","消えた","var(--danger)"]};
+function checkFolderRow(f){
+  const st=f.state==="done"?'<span style="color:var(--keep)">✓ 確認済み</span>':f.state==="run"?'<span style="color:var(--accent-hi)">確認中</span>':'<span style="color:var(--faint)">順番待ち</span>';
+  const r=f.found,res=f.state==="wait"?"":([r.added?`新しい ${r.added}`:"",r.changed?`変わった ${r.changed}`:"",r.removed?`消えた ${r.removed}`:""].filter(Boolean).join("・")||(f.state==="done"?"変更なし":""));
+  return `<div class="an-row"><span class="fico" aria-hidden="true" style="${f.state==="wait"?"opacity:.4":""}"></span><div><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div><div class="bar" style="margin-top:5px;height:4px"><i style="width:${f.seen/f.total*100}%;${f.state==="done"?"background:var(--keep)":""}"></i></div></div><div class="num" style="text-align:right;font-size:12px;color:var(--muted);min-width:140px">${st}${f.state==="wait"?"":`<br>${f.seen.toLocaleString()} / ${f.total.toLocaleString()}本`}${res?`<br>${res}`:""}</div></div>`;
+}
+function checkFileRow(x,i){
+  const c=S.check,names=["動画の情報","完全に同じか","よく似ているか"];
+  const st=i<c.fi?'<span style="color:var(--keep)">✓ 完了</span>':(i===c.fi&&c.phase==="analyze")?`<span style="color:var(--accent-hi)">${names[x.stage]}を確認中</span>`:'<span style="color:var(--faint)">順番待ち</span>';
+  return `<div class="an-row" style="grid-template-columns:40px minmax(0,1fr) auto"><div class="thumb" style="width:40px;height:24px;background:linear-gradient(135deg,hsl(${(200+i*23)%360} 45% 42%),hsl(${(240+i*23)%360} 40% 22%))" aria-hidden="true"></div><div style="min-width:0"><div class="r-name">${H(x.name)} <span class="pill" style="font-size:10px">${x.kind}</span></div><div class="r-path">${H(x.dir)}・${gb(x.size)}</div>${(i===c.fi&&c.phase==="analyze")?`<div class="bar" style="height:4px;margin-top:4px"><i style="width:${x.pct}%"></i></div>`:""}</div><div style="font-size:12px;text-align:right">${st}</div></div>`;
+}
+function checkScreen(){
+  const c=S.check,p=checkProgress(),el=Math.round((Date.now()-c.t0)/1000),cf=c.files[c.fi];
+  const off=S.folders.filter(f=>f.offline);
+  const cur=c.phase==="diff"?`確認中のファイル：<b class="num">${H(c.cur||"…")}</b>`:cf?`解析中：<b>${H(cf.name)}</b>（${gb(cf.size)}）${cf.size>3?"・大きいファイルなので少し時間がかかります":""}`:"";
+  return `<div class="analysis" aria-live="polite">
+    ${S.detail?'<div><button class="btn small" id="back-list">← 重複の一覧に戻る</button></div>':""}
+    <div class="an-head"><h2>${c.phase==="diff"?"前回からの変更を確認しています":"新しいファイルを解析しています"}</h2><span class="an-eta num">${p}%<small>経過 ${Math.floor(el/60)}分${el%60}秒</small></span></div>
+    <div class="bar" style="height:8px"><i style="width:${p}%"></i></div>
+    <div class="current"><span class="pulse" aria-hidden="true"></span><span class="r-path" style="font-size:13px">${cur}</span></div>
+    <div class="h3" style="margin:4px 0 0">1. 変更の確認 <span style="font-weight:400;color:var(--faint);font-size:12px">ディスクに負担をかけないよう、フォルダーを1つずつ順番に確認します</span></div>
+    <div class="an-card">${c.folders.map(checkFolderRow).join("")}${off.map(f=>`<div class="an-row"><span class="fico" style="opacity:.3"></span><div><b>${H(f.name)}</b> <span style="color:var(--faint);font-size:12px">${H(f.path)}</span></div><div style="font-size:12px;color:var(--danger);text-align:right">接続されていないので<br>確認できません</div></div>`).join("")}</div>
+    ${c.log.length?`<div class="an-card" style="gap:3px"><div style="font-size:12px;color:var(--muted)">見つかった変更（新しい順）</div>${c.log.slice(0,6).map(l=>`<div style="font-size:12px;display:flex;gap:8px;min-width:0"><b style="color:${KINDS[l.k][2]};width:14px;flex:none">${KINDS[l.k][0]}</b><span style="color:var(--muted);flex:none">${KINDS[l.k][1]}</span><span class="r-path" style="font-size:12px">${H(l.text)}</span></div>`).join("")}</div>`:""}
+    ${c.files.length?`<div class="h3" style="margin:4px 0 0">2. 新しい・変わったファイルの解析 <span style="font-weight:400;color:var(--faint);font-size:12px">${c.files.length}本・1本ずつ</span></div><div class="an-card">${c.phase==="diff"?'<div style="font-size:12px;color:var(--faint)">変更の確認が終わると始まります</div>':c.files.map(checkFileRow).join("")}</div>`:""}
+    ${c.found.length?`<div class="h3" style="margin:4px 0 0">3. 見つかった新しい重複 <span class="num" style="font-weight:400;color:var(--faint);font-size:12px">${c.found.length}組・登録した全フォルダーのファイルと比べた結果</span></div><div class="an-card">${c.found.map(g=>`<div style="display:flex;gap:8px;align-items:center;font-size:13px;min-width:0">${MARK(g.type)}<span class="r-path" style="font-size:13px;color:var(--text)">${H(g.files[1].name)}</span><span style="color:var(--faint);flex:none">と</span><span class="r-path" style="font-size:13px;color:var(--text)">${H(g.files[0].name)}（${H(folderOf(g.files[0])?folderOf(g.files[0]).name:"")}）</span></div>`).join("")}</div>`:""}
+    <div class="reassure"><span>変わっていないファイルは、前回の解析結果をそのまま使うので、確認だけで済みます。</span><span>${c.auto?"起動時に自動で確認しています。設定で「手動で確認する」に変えられます。":"「変更を確認」を押したので確認しています。"}</span></div>
+  </div>`;
+}
+let scanT=null;
+function tickScan(){clearTimeout(scanT);if(!S.folders.some(f=>f.scan<100)){S.detail=null;if(S.state==="scan")S.state="found";if(S.firstRun){S.firstRun=false;S.overlay={kind:"prio",order:ranked().map(f=>f.id)}}render();return}
+  S.scanTicks++;
+  S.folders.forEach((f,i)=>{if(f.scan<100){const slow=S.scanTicks%7<3;f.scan=Math.min(100,f.scan+(slow?0:(i===0?5:2)))}});
+  if(!S.overlay)render();scanT=setTimeout(tickScan,700)}
+let toastT;function toast(msg){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#win").appendChild(t)}t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),3000)}
+
+try{const w=localStorage.getItem("lmai-sidew");if(w)document.documentElement.style.setProperty("--sidew",w+"px")}catch(e){}
+$("#more").onclick=e=>{e.stopPropagation();const m=$("#menu");m.hidden=!m.hidden;$("#more").setAttribute("aria-expanded",!m.hidden)};
+document.addEventListener("click",e=>{if(!e.target.closest(".menu-wrap"))$("#menu").hidden=true;if(S.fmenu&&!e.target.closest(".fold")){S.fmenu=null;render()}});
+$$("#menu [data-toast]").forEach(b=>b.onclick=()=>{$("#menu").hidden=true;toast(b.dataset.toast+" を開きます（試作では省略）")});
+$("#open-settings").onclick=()=>{if(S.state==="first"){toast("先にフォルダーを追加してください");return}openKind("settings")};
+$("#open-files").onclick=()=>{if(S.state==="first"){toast("先にフォルダーを追加してください");return}openKind("files")};
+$$(".proto button[data-state]").forEach(b=>b.onclick=()=>fresh(b.dataset.state));
+$("#proto-offline").onclick=toggleOffline;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(S.fmenu){S.fmenu=null;render()}else if(S.overlay&&S.overlay.kind!=="run"){S.overlay=null;render()}}});
+fresh("found");
+})();
+</script>
