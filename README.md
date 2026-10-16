@@ -48,6 +48,20 @@ Windows desktop app that finds duplicate and near-duplicate videos in a large lo
 
 技術：C# / .NET 10 / WPF / SQLite（Microsoft.Data.Sqlite）/ FFmpeg / Python（gRPC、PyTorch、OpenCLIP）
 
+## インストール（ワンクリック）
+
+**Install:** download `VidTidy-Setup.cmd` from the [latest release](https://github.com/harutokdev/VidTidy/releases/latest) and double-click it. Run it again (or the "Update VidTidy" shortcut) to update.
+
+1. [最新のリリース](https://github.com/harutokdev/VidTidy/releases/latest)から `VidTidy-Setup.cmd` をダウンロードし、ダブルクリックします。
+2. アプリ本体（.NET 込み、約65MB）と FFmpeg（LGPL 版、約165MB）がダウンロードされ、`%LOCALAPPDATA%\Programs\VidTidy` に入ります。管理者権限は要りません。終わると VidTidy が起動し、スタートメニューとデスクトップにショートカットができます。
+3. **更新**：スタートメニューの「VidTidy を更新」（または `VidTidy-Setup.cmd` をもう一度実行）。新しい版があるときだけ入れ替えます。
+4. **アンインストール**：スタートメニューの「VidTidy をアンインストール」。
+
+- ダウンロードしたファイルは、リリースに添えた SHA-256 と照合し、壊れていたら入れません（照合するのは転送中の破損で、内容の信頼は GitHub のリリースそのものに基づきます）。FFmpeg は配布元（[BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)）から直接取得し、同じく照合します。
+- 更新で入れ替えるのは、前回インストールしたアプリのファイルだけです。ライブラリと設定（`%LOCALAPPDATA%\LocalMediaAI` など）、`runtime\`・`models\` に自分で置いたものには触れません。前の版は `VidTidy.previous` に残し、途中で失敗したら元に戻します。
+- 初回は Windows の SmartScreen が「PC を保護しました」と出すことがあります（署名のない新しいファイルのため）。「詳細情報」→「実行」で進めます。
+- 仕組みとオプション（インストール先の変更、更新の確認だけ、など）は [install/Install-VidTidy.ps1](install/Install-VidTidy.ps1) の先頭にあります。AI 意味検索のランタイムとモデルは入れません（後述）。
+
 ## ビルドと実行
 
 必要なもの：Windows 10/11 x64、[.NET SDK 10.0.400 以降](https://dotnet.microsoft.com/)、FFmpeg（`ffmpeg.exe` と `ffprobe.exe`）
@@ -75,6 +89,16 @@ dotnet test LocalMediaAI.sln
 
 データ（カタログ・キャッシュ）は既定で `%LOCALAPPDATA%\LocalMediaAI` に保存されます。実行ファイルの隣に `portable.flag` を置くと、その場所に保存します。
 
+### リリースの作り方（開発者向け）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\release\Build-Release.ps1 -Version 1.0.0
+# インストーラーの動作確認（ローカルのファイルで導入・更新・失敗時の巻き戻し・削除を試す）
+powershell -ExecutionPolicy Bypass -File scripts\release\Test-Installer.ps1 -Zip artifacts\release\v1.0.0\VidTidy-1.0.0-win-x64.zip -WorkRoot C:\VidTidy-InstallerTest
+```
+
+`artifacts\release\v1.0.0\` にできる4つのファイル（zip、その `.sha256`、`Install-VidTidy.ps1`、`VidTidy-Setup.cmd`）を、タグ `v1.0.0` の GitHub リリースに添付します。インストーラーは「最新のリリース」から取るので、公開した時点で利用者の更新対象になります。
+
 ### AI 意味検索を使う場合（任意・上級者向け）
 
 AI 意味検索には、ポータブル Python ランタイム（`runtime\python*`）とモデル（`models\llm-jp-clip-vit-base-patch16` ほか、約1GB）が必要です。どちらもサイズとライセンスの都合でリポジトリに含めていません。準備用のスクリプトは `scripts\` にありますが、完全には自動化されていません。ワーカーがなくても、重複・類似の検出と整理は動きます。
@@ -94,4 +118,4 @@ AI 意味検索には、ポータブル Python ランタイム（`runtime\python
 
 ## ライセンス
 
-[MIT License](LICENSE)。FFmpeg、Python ランタイム、AI モデルは含まれておらず、それぞれのライセンスに従います。
+[MIT License](LICENSE)。配布する zip に含まれる .NET ランタイムやライブラリのライセンスは [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) にまとめています。FFmpeg、Python ランタイム、AI モデルは含まれておらず、それぞれのライセンスに従います（FFmpeg はインストーラーが配布元から LGPL 版を取得します）。
